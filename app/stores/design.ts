@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import type { Design } from '~/types'
+import type { DesignStyle, ShirtColor } from '~/types/design'
 
 export interface ChatMessage {
   id: string
@@ -13,6 +14,9 @@ interface DesignState {
   history: Design[]
   isGenerating: boolean
   isRegenerating: boolean
+  style: DesignStyle
+  shirtColor: ShirtColor
+  generateError: string | null
   chatMessages: ChatMessage[]
 }
 
@@ -22,6 +26,9 @@ export const useDesignStore = defineStore('design', {
     history: [],
     isGenerating: false,
     isRegenerating: false,
+    style: 'streetwear',
+    shirtColor: 'black',
+    generateError: null,
     chatMessages: [],
   }),
 
@@ -31,6 +38,8 @@ export const useDesignStore = defineStore('design', {
       fabricId: string,
       prompt: string,
       referenceImage: string | null,
+      style: DesignStyle,
+      shirtColor: ShirtColor,
     ) {
       this.current = {
         id: crypto.randomUUID(),
@@ -42,6 +51,9 @@ export const useDesignStore = defineStore('design', {
         backImage: null,
         createdAt: new Date().toISOString(),
       }
+      this.style = style
+      this.shirtColor = shirtColor
+      this.generateError = null
       this.chatMessages = []
     },
 
@@ -51,10 +63,10 @@ export const useDesignStore = defineStore('design', {
       }
     },
 
-    setGeneratedImages(front: string, back: string) {
+    setGeneratedImage(imageUrl: string) {
       if (this.current) {
-        this.current.frontImage = front
-        this.current.backImage = back
+        this.current.frontImage = imageUrl
+        this.current.backImage = imageUrl
       }
     },
 
@@ -64,6 +76,10 @@ export const useDesignStore = defineStore('design', {
 
     setRegenerating(value: boolean) {
       this.isRegenerating = value
+    },
+
+    setGenerateError(message: string | null) {
+      this.generateError = message
     },
 
     addChatMessage(role: 'user' | 'ai', text: string) {

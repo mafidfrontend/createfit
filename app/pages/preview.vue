@@ -7,9 +7,11 @@ import PreviewToggle from '~/components/preview/PreviewToggle.vue'
 import PreviewImage from '~/components/preview/PreviewImage.vue'
 import PreviewSummary from '~/components/preview/PreviewSummary.vue'
 import PreviewChat from '~/components/preview/PreviewChat.vue'
+import { useDesign } from '~/composables/useDesign'
 
 const router = useRouter()
 const designStore = useDesignStore()
+const { generateDesign, isLoading } = useDesign()
 
 type Side = 'front' | 'back'
 const activeSide = ref<Side>('front')
@@ -26,12 +28,24 @@ function goBack() {
   router.push('/create')
 }
 
-function editPrompt(newPrompt: string) {
-  designStore.updatePrompt(newPrompt)
+async function regenerate() {
+  if (!designStore.current || isLoading.value) return
   designStore.setRegenerating(true)
-  setTimeout(() => {
-    designStore.setRegenerating(false)
-  }, 1500)
+  designStore.setGenerateError(null)
+
+  const result = await generateDesign({
+    prompt: designStore.current.prompt,
+    style: designStore.style,
+    shirtColor: designStore.shirtColor,
+  })
+
+  designStore.setRegenerating(false)
+
+  if (result) {
+    designStore.setGeneratedImage(result.imageUrl)
+  } else {
+    designStore.setGenerateError('Не удалось пересоздать дизайн. Попробуйте ещё раз.')
+  }
 }
 
 function continueToNext() {
@@ -45,7 +59,6 @@ function continueToNext() {
     <AppHeader title="Предварительный результат" show-back show-menu @back="goBack" />
 
     <main class="flex-1 overflow-y-auto px-5 pt-4 pb-28">
-      <!-- Preview toggle + image -->
       <div class="mb-4">
         <PreviewToggle v-model="activeSide" />
       </div>
@@ -56,22 +69,29 @@ function continueToNext() {
         :is-generating="designStore.isRegenerating"
       />
 
-      <!-- Summary -->
+      <Transition
+        enter-active-class="transition-all duration-300 ease-out"
+        enter-from-class="opacity-0 translate-y-2"
+        enter-to-class="opacity-100 translate-y-0"
+      >
+        <div v-if="designStore.generateError" class="mt-4 rounded-2xl bg-error-50 px-4 py-3">
+          <p class="text-sm font-medium text-error-700">{{ designStore.generateError }}</p>
+        </div>
+      </Transition>
+
       <div class="mt-5">
-        <PreviewSummary :design="designStore.current" @edit-prompt="editPrompt" />
+        <PreviewSummary :design="designStore.current" @edit-prompt="regenerate" />
       </div>
 
-      <!-- AI Chat -->
       <div class="mt-5">
         <PreviewChat />
       </div>
     </main>
 
-    <!-- Bottom action bar -->
     <div class="fixed bottom-0 left-0 right-0 mx-auto max-w-md border-t border-neutral-100 bg-white/95 px-5 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))] backdrop-blur-md">
       <div class="flex gap-3">
-        <AppButton variant="outline" size="lg" class="flex-1" @click="goBack">
-          Редактировать
+        <AppButton variant="outline" size="lg" class="flex-1" :loading="designStore.isRegenerating" @click="regenerate">
+          {{ designStore.isRegenerating ? 'Генерация...' : 'Перегенерировать' }}
         </AppButton>
         <AppButton variant="primary" size="lg" class="flex-[1.5]" @click="continueToNext">
           Продолжить

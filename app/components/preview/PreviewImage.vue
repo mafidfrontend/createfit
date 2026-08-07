@@ -10,14 +10,9 @@ const props = defineProps<{
   isGenerating?: boolean
 }>()
 
-const MOCK_FRONT = 'https://images.pexels.com/photos/6311251/pexels-photo-6311251.jpeg?auto=compress&cs=tinysrgb&h=650&w=940'
-const MOCK_BACK = 'https://images.pexels.com/photos/6311141/pexels-photo-6311141.jpeg?auto=compress&cs=tinysrgb&h=650&w=940'
-
 const activeImage = computed(() => {
-  if (props.side === 'front') {
-    return props.frontImage ?? MOCK_FRONT
-  }
-  return props.backImage ?? MOCK_BACK
+  if (props.side === 'front') return props.frontImage
+  return props.backImage
 })
 
 const sideLabel = computed(() => props.side === 'front' ? 'Спереди' : 'Сзади')
@@ -47,17 +42,34 @@ const sideLabel = computed(() => props.side === 'front' ? 'Спереди' : 'С
         <span class="mt-3 text-sm font-medium text-neutral-400">Генерация дизайна...</span>
       </div>
 
-      <div v-else :key="side" class="relative overflow-hidden rounded-3xl bg-neutral-50">
+      <div v-else-if="activeImage" :key="side" class="relative overflow-hidden rounded-3xl bg-neutral-50">
         <img
           :src="activeImage"
           :alt="`Дизайн ${sideLabel.toLowerCase()}`"
-          class="h-72 w-full object-cover object-top"
+          class="h-72 w-full object-contain"
           loading="eager"
         />
-        <div class="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent" />
         <span class="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-white/80 px-3 py-1 text-xs font-semibold text-neutral-600 backdrop-blur-sm">
           {{ sideLabel }}
         </span>
+      </div>
+
+      <div v-else :key="'empty'" class="flex h-72 flex-col items-center justify-center rounded-3xl bg-neutral-100">
+        <svg
+          class="h-10 w-10 text-neutral-300"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <rect x="3" y="3" width="18" height="18" rx="2" />
+          <circle cx="9" cy="9" r="2" />
+          <path d="M21 15l-5-5L5 21" />
+        </svg>
+        <span class="mt-3 text-sm font-medium text-neutral-400">Изображение не сгенерировано</span>
       </div>
     </Transition>
   </div>
