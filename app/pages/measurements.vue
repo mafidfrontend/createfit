@@ -5,9 +5,12 @@ import AppHeader from '~/components/AppHeader.vue'
 import AppButton from '~/components/AppButton.vue'
 import AppInput from '~/components/AppInput.vue'
 import MeasureStep1Guide from '~/components/measurements/MeasureStep1Guide.vue'
+import { calculatePrice } from '~/config/products'
 
 const router = useRouter()
 const measurementsStore = useMeasurementsStore()
+const designStore = useDesignStore()
+const cartStore = useCartStore()
 
 const step = computed(() => measurementsStore.step)
 const isExtracting = computed(() => measurementsStore.isExtracting)
@@ -48,6 +51,18 @@ function adjustMeasurement(key: keyof typeof measurementsStore.data, delta: numb
 
 function confirmAndCheckout() {
   measurementsStore.confirm()
+
+  if (designStore.current) {
+    const price = calculatePrice(designStore.current.productId, designStore.current.fabricId)
+    cartStore.addItem({
+      productId: designStore.current.productId,
+      designId: designStore.current.id,
+      size: 'M',
+      quantity: 1,
+      price,
+    })
+  }
+
   router.push('/cart')
 }
 

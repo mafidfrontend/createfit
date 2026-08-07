@@ -38,6 +38,7 @@ const defaultMeasurements: Measurements = {
 }
 
 export const useMeasurementsStore = defineStore('measurements', {
+  persist: true,
   state: (): MeasurementsState => ({
     step: 1,
     personalInfo: { ...defaultPersonalInfo },

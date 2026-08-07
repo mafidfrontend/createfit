@@ -6,6 +6,7 @@ interface CartState {
 }
 
 export const useCartStore = defineStore('cart', {
+  persist: true,
   state: (): CartState => ({
     items: [],
   }),

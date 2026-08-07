@@ -21,6 +21,7 @@ interface DesignState {
 }
 
 export const useDesignStore = defineStore('design', {
+  persist: true,
   state: (): DesignState => ({
     current: null,
     history: [],
