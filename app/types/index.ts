@@ -1,6 +1,27 @@
 export type ProductId = string
 export type FabricId = string
 
+export type PhotoValidationState =
+  | 'idle'
+  | 'validating'
+  | 'success'
+  | 'error_blurry'
+  | 'error_no_a4'
+  | 'error_body'
+
+export interface PhotoSlot {
+  dataUrl: string | null
+  state: PhotoValidationState
+  attempt: number
+}
+
+export interface MeasurementPersonalInfo {
+  name: string
+  height: string
+  age: string
+  phoneModel: string
+}
+
 export interface ProductType {
   id: ProductId
   name: string
@@ -62,6 +83,30 @@ export interface CartItem {
   price: number
 }
 
+export type DeliveryMethodId = 'pickup' | 'courier' | 'post'
+export type PaymentMethodId = 'card' | 'cash' | 'sbp'
+
+export interface DeliveryMethod {
+  id: DeliveryMethodId
+  name: string
+  description: string
+  price: number
+  icon: string
+}
+
+export interface PaymentMethod {
+  id: PaymentMethodId
+  name: string
+  description: string
+  icon: string
+}
+
+export interface PromoCode {
+  code: string
+  discountPercent: number
+  description: string
+}
+
 export interface Order {
   id: string
   items: CartItem[]
@@ -69,6 +114,11 @@ export interface Order {
   measurements: Measurements
   total: number
   deliveryPrice: number
+  deliveryMethod: DeliveryMethodId
+  paymentMethod: PaymentMethodId
+  promoCode: string | null
+  discount: number
+  notes: string
   status: 'pending' | 'paid' | 'confirmed'
   createdAt: string
 }

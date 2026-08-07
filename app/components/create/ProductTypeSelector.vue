@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { PRODUCTS } from '~/config/products'
+import { PRODUCT_ICON_PATHS } from '~/config/icons'
 import type { ProductType } from '~/types'
 import AppSectionHeader from '~/components/AppSectionHeader.vue'
 
-const props = defineProps<{
+defineProps<{
   modelValue: string | null
 }>()
 
@@ -12,13 +13,6 @@ const emit = defineEmits<{
 }>()
 
 const { formatPrice } = useFormat()
-
-const productIconPaths: Record<string, string> = {
-  tshirt: 'M8 4l-4 3v3l3-1v10h10V9l3 1V7l-4-3M8 4l4 2 4-2',
-  hoodie: 'M8 3l-5 4v4l2-1v10h14V10l2 1V7l-5-4M8 3l4 2 4-2M10 14h4',
-  polo: 'M8 4l-4 3v3l3-1v10h10V9l3 1V7l-4-3M8 4l4 2 4-2M10 6v3M14 6v3',
-  longsleeve: 'M8 4l-4 3v3l3-1v10h10V9l3-1V7l-4-3M8 4l4 2 4-2M4 10l-2 6 2 2 2-4',
-}
 
 function select(product: ProductType) {
   emit('update:modelValue', product.id)
@@ -61,7 +55,7 @@ function select(product: ProductType) {
             stroke-linejoin="round"
             aria-hidden="true"
           >
-            <path :d="productIconPaths[product.icon]" />
+            <path :d="PRODUCT_ICON_PATHS[product.icon] ?? ''" />
           </svg>
         </div>
         <span class="mt-3 text-sm font-bold text-neutral-900">{{ product.name }}</span>

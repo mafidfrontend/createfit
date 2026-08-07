@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useTelegram } from '~/composables/useTelegram'
+import MenuDrawer from '~/components/MenuDrawer.vue'
 
 const { init } = useTelegram()
 const userStore = useUserStore()
@@ -15,7 +16,8 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="mx-auto flex min-h-screen max-w-md flex-col bg-white">
+  <div class="mx-auto flex min-h-[100dvh] max-w-md flex-col bg-white">
     <slot />
+    <MenuDrawer />
   </div>
 </template>

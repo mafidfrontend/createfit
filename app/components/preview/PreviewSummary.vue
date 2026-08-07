@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { getFabricById, getProductById } from '~/config/products'
+import { ref, computed } from 'vue'
+import { getFabricById, getProductById, calculatePrice } from '~/config/products'
+import { FABRIC_ICON_PATHS } from '~/config/icons'
 import { useFormat } from '~/composables/useFormat'
 import { BRAND_TEXT } from '~/config/navigation'
 import type { Design } from '~/types'
@@ -29,16 +30,9 @@ const fabric = computed(() => {
 })
 
 const price = computed(() => {
-  if (!product.value || !fabric.value) return 0
-  return product.value.basePrice + fabric.value.priceModifier
+  if (!props.design.productId || !props.design.fabricId) return 0
+  return calculatePrice(props.design.productId, props.design.fabricId)
 })
-
-const fabricIconPaths: Record<string, string> = {
-  cotton: 'M12 2C8 2 5 5 5 9c0 2 1 4 3 5-2 1-3 3-3 5 0 1 1 2 2 2h10c1 0 2-1 2-2 0-2-1-4-3-5 2-1 3-3 3-5 0-4-3-7-7-7z',
-  polyester: 'M3 3l6 6 6-6 6 6M3 9l6 6 6-6 6 6M3 15l6 6 6-6 6 6',
-  linen: 'M12 2v20M8 4v16M16 4v16M4 8h16M4 16h16',
-  blend: 'M4 4l8 8M12 4l-8 8M20 4l-8 8M12 20l8-8M4 12l8 8',
-}
 
 function startEdit() {
   editedPrompt.value = props.design.prompt
@@ -59,7 +53,6 @@ function cancelEdit() {
 
 <template>
   <div class="space-y-4">
-    <!-- Price estimate -->
     <div class="flex items-center justify-between rounded-2xl bg-primary-50 px-5 py-4">
       <div class="flex flex-col">
         <span class="text-xs font-medium text-neutral-500">Итого от</span>
@@ -71,7 +64,6 @@ function cancelEdit() {
       </div>
     </div>
 
-    <!-- Your request -->
     <div>
       <h3 class="mb-2 text-sm font-bold text-neutral-900">Ваш запрос</h3>
       <Transition
@@ -122,13 +114,12 @@ function cancelEdit() {
       </Transition>
     </div>
 
-    <!-- Fabric -->
     <div v-if="fabric">
       <h3 class="mb-2 text-sm font-bold text-neutral-900">Выбранная ткань</h3>
       <div class="flex items-center gap-3 rounded-2xl border border-neutral-200 bg-white px-4 py-3">
         <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-neutral-100">
           <svg class="h-5 w-5 text-neutral-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path :d="fabricIconPaths[fabric.icon]" />
+            <path :d="FABRIC_ICON_PATHS[fabric.icon] ?? ''" />
           </svg>
         </div>
         <div class="flex flex-col">
@@ -138,7 +129,6 @@ function cancelEdit() {
       </div>
     </div>
 
-    <!-- Reference image -->
     <div v-if="design.referenceImage">
       <h3 class="mb-2 text-sm font-bold text-neutral-900">Загруженное изображение</h3>
       <div class="overflow-hidden rounded-2xl border border-neutral-200">
@@ -146,7 +136,6 @@ function cancelEdit() {
       </div>
     </div>
 
-    <!-- Branding -->
     <div class="pt-2 text-center">
       <span class="text-xs font-medium tracking-wide text-neutral-400">{{ BRAND_TEXT }}</span>
     </div>

@@ -1,31 +1,29 @@
 import { defineStore } from 'pinia'
 
 interface UiState {
-  bottomSheetOpen: boolean
-  bottomSheetComponent: string | null
+  menuOpen: boolean
   loadingOverlayVisible: boolean
   loadingMessage: string
-  theme: 'light' | 'dark'
 }
 
 export const useUiStore = defineStore('ui', {
   state: (): UiState => ({
-    bottomSheetOpen: false,
-    bottomSheetComponent: null,
+    menuOpen: false,
     loadingOverlayVisible: false,
     loadingMessage: '',
-    theme: 'light',
   }),
 
   actions: {
-    openBottomSheet(component: string) {
-      this.bottomSheetComponent = component
-      this.bottomSheetOpen = true
+    openMenu() {
+      this.menuOpen = true
     },
 
-    closeBottomSheet() {
-      this.bottomSheetOpen = false
-      this.bottomSheetComponent = null
+    closeMenu() {
+      this.menuOpen = false
+    },
+
+    toggleMenu() {
+      this.menuOpen = !this.menuOpen
     },
 
     showLoading(message = '') {
@@ -36,10 +34,6 @@ export const useUiStore = defineStore('ui', {
     hideLoading() {
       this.loadingOverlayVisible = false
       this.loadingMessage = ''
-    },
-
-    toggleTheme() {
-      this.theme = this.theme === 'light' ? 'dark' : 'light'
     },
   },
 })

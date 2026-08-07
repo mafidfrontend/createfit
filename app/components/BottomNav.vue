@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { NAV_ICON_PATHS } from '~/config/icons'
 import { NAV_ITEMS } from '~/config/navigation'
 
 const route = useRoute()
@@ -9,13 +10,6 @@ const isActive = (to: string): boolean => {
 }
 
 const items = NAV_ITEMS
-
-const iconPaths: Record<string, string> = {
-  home: 'M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1h-5v-7H9v7H4a1 1 0 01-1-1V9.5z',
-  sparkles: 'M12 3l1.5 5L19 9.5 13.5 11 12 16l-1.5-5L5 9.5 10.5 8 12 3z',
-  ruler: 'M3 17L17 3l4 4L7 21l-4-4zM7 9l2 2M11 5l2 2M9 11l2 2',
-  'shopping-bag': 'M6 7h12l1 13H5L6 7zM9 7V5a3 3 0 016 0v2',
-}
 </script>
 
 <template>
@@ -43,7 +37,7 @@ const iconPaths: Record<string, string> = {
         stroke-linejoin="round"
         aria-hidden="true"
       >
-        <path :d="iconPaths[item.icon]" />
+        <path :d="NAV_ICON_PATHS[item.icon] ?? ''" />
       </svg>
       <span
         class="text-[10px] font-medium transition-colors duration-200"

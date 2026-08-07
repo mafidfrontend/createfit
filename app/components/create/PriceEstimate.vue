@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { getProductById, getFabricById } from '~/config/products'
+import { getProductById, getFabricById, calculatePrice } from '~/config/products'
 
 const props = defineProps<{
   productId: string | null
@@ -11,10 +11,7 @@ const { formatPrice } = useFormat()
 
 const price = computed(() => {
   if (!props.productId || !props.fabricId) return 0
-  const product = getProductById(props.productId)
-  const fabric = getFabricById(props.fabricId)
-  if (!product || !fabric) return 0
-  return product.basePrice + fabric.priceModifier
+  return calculatePrice(props.productId, props.fabricId)
 })
 
 const visible = computed(() => props.productId !== null && props.fabricId !== null)

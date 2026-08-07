@@ -1,22 +1,16 @@
 <script setup lang="ts">
 import { FABRICS } from '~/config/products'
+import { FABRIC_ICON_PATHS } from '~/config/icons'
 import type { Fabric } from '~/types'
 import AppSectionHeader from '~/components/AppSectionHeader.vue'
 
-const props = defineProps<{
+defineProps<{
   modelValue: string | null
 }>()
 
 const emit = defineEmits<{
   'update:modelValue': [value: string]
 }>()
-
-const fabricIconPaths: Record<string, string> = {
-  cotton: 'M12 2C8 2 5 5 5 9c0 2 1 4 3 5-2 1-3 3-3 5 0 1 1 2 2 2h10c1 0 2-1 2-2 0-2-1-4-3-5 2-1 3-3 3-5 0-4-3-7-7-7z',
-  polyester: 'M3 3l6 6 6-6 6 6M3 9l6 6 6-6 6 6M3 15l6 6 6-6 6 6',
-  linen: 'M12 2v20M8 4v16M16 4v16M4 8h16M4 16h16',
-  blend: 'M4 4l8 8M12 4l-8 8M20 4l-8 8M12 20l8-8M4 12l8 8',
-}
 
 function select(fabric: Fabric) {
   emit('update:modelValue', fabric.id)
@@ -60,7 +54,7 @@ function select(fabric: Fabric) {
               stroke-linejoin="round"
               aria-hidden="true"
             >
-              <path :d="fabricIconPaths[fabric.icon]" />
+              <path :d="FABRIC_ICON_PATHS[fabric.icon] ?? ''" />
             </svg>
           </div>
           <span class="text-sm font-bold leading-tight text-neutral-900">{{ fabric.name }}</span>

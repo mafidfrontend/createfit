@@ -18,8 +18,9 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   back: []
-  menu: []
 }>()
+
+const uiStore = useUiStore()
 
 const headerClasses = computed(() => [
   'sticky top-0 z-40 flex h-16 items-center justify-between px-5 transition-colors duration-300',
@@ -54,7 +55,7 @@ const headerClasses = computed(() => [
       v-if="showMenu"
       class="flex h-10 w-10 items-center justify-center rounded-full text-neutral-700 active:bg-neutral-100 transition-colors"
       aria-label="Меню"
-      @click="emit('menu')"
+      @click="uiStore.toggleMenu()"
     >
       <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <line x1="3" y1="6" x2="21" y2="6" />

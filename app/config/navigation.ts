@@ -6,4 +6,3 @@ export const NAV_ITEMS = [
 ] as const
 
 export const BRAND_TEXT = 'Made by SAIKO'
-export const BRAND_TEXT_FULL = 'Manufactured by SAIKO'

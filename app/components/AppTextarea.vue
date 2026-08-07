@@ -33,7 +33,7 @@ function handleInput(event: Event) {
 
 <template>
   <div class="w-full">
-    <label v-if="label" :for="`textarea-${label}`" class="mb-2 block text-sm font-medium text-neutral-700">
+    <label v-if="label" :for="textareaId" class="mb-2 block text-sm font-medium text-neutral-700">
       {{ label }}
     </label>
     <div
