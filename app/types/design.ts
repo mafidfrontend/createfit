@@ -45,9 +45,9 @@ export interface GenerateDesignRequest {
 }
 
 export interface GenerateDesignResponse {
-  id: string
-  imageUrl: string
-  prompt: string
+  frontImage: string
+  backImage: string
+  originalPrompt: string
 }
 
 const STYLE_PROMPT_MAP: Record<DesignStyle, string> = {
@@ -68,17 +68,41 @@ const COLOR_PROMPT_MAP: Record<ShirtColor, string> = {
   burgundy: 'burgundy apparel mockup',
 }
 
-export function enhancePrompt(prompt: string, style: DesignStyle, shirtColor: ShirtColor): string {
+const FRONT_VIEW_CONSTRAINTS = [
+  'Generate exactly ONE person, full-body view, strictly front-facing (facing the camera directly)',
+  'the same person and identity as the reference image',
+  'wearing the same clothing and design described above',
+  'single person only',
+  'no collage, no split screen, no side-by-side people, no multiple views in one image',
+  'no front-and-back composite, no duplicate person, no grid layout',
+].join(', ')
+
+const BACK_VIEW_CONSTRAINTS = [
+  'Generate exactly ONE person, full-body view, strictly back-facing (facing away from the camera)',
+  'the same person and identity as the reference image, same proportions, outfit, colors and general visual style',
+  'the face should NOT be visible from the front',
+  'single person only',
+  'no collage, no split screen, no side-by-side people, no multiple views in one image',
+  'no front-and-back composite, no duplicate person, no grid layout',
+].join(', ')
+
+function buildBasePrompt(prompt: string, style: DesignStyle, shirtColor: ShirtColor): string {
   const cleanPrompt = prompt.trim().replace(/\s+/g, ' ')
   const stylePart = STYLE_PROMPT_MAP[style] ?? STYLE_PROMPT_MAP.streetwear
   const colorPart = COLOR_PROMPT_MAP[shirtColor] ?? COLOR_PROMPT_MAP.black
 
   return [
-    'Premium vector t-shirt graphic of',
     cleanPrompt,
-    'centered composition, transparent background,',
     stylePart + ',',
     colorPart + ',',
-    'highly detailed, print-ready, no watermark, no text, isolated artwork',
+    'highly detailed, print-ready, no watermark, isolated on plain background',
   ].join(' ')
+}
+
+export function enhanceFrontPrompt(prompt: string, style: DesignStyle, shirtColor: ShirtColor): string {
+  return [buildBasePrompt(prompt, style, shirtColor), '. FRONT VIEW:', FRONT_VIEW_CONSTRAINTS].join('')
+}
+
+export function enhanceBackPrompt(prompt: string, style: DesignStyle, shirtColor: ShirtColor): string {
+  return [buildBasePrompt(prompt, style, shirtColor), '. BACK VIEW:', BACK_VIEW_CONSTRAINTS].join('')
 }

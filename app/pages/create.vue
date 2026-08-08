@@ -55,7 +55,7 @@ async function submit() {
   designStore.setGenerating(false)
 
   if (result) {
-    designStore.setGeneratedImage(result.imageUrl)
+    designStore.setGeneratedImages(result.frontImage, result.backImage)
     router.push('/preview')
   } else {
     designStore.setGenerateError(error.value)

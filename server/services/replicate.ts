@@ -1,4 +1,4 @@
-import { enhancePrompt, type GenerateDesignRequest, type GenerateDesignResponse } from '~/types/design'
+import { enhanceFrontPrompt, enhanceBackPrompt, type GenerateDesignRequest, type GenerateDesignResponse } from '~/types/design'
 
 const REPLICATE_API_BASE = 'https://api.replicate.com/v1'
 const FLUX_PRO_MODEL = 'black-forest-labs/flux-1.1-pro'
@@ -112,18 +112,12 @@ function extractImageUrl(prediction: ReplicatePrediction): string {
   return prediction.output
 }
 
-export async function generateDesign(request: GenerateDesignRequest): Promise<GenerateDesignResponse> {
-  if (!request.prompt.trim()) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: 'Prompt is required',
-    })
-  }
-
-  const token = getApiToken()
-  const enhancedPrompt = enhancePrompt(request.prompt, request.style, request.shirtColor)
-
-  const prediction = await createPrediction(token, enhancedPrompt)
+async function generateSingleImage(
+  token: string,
+  prompt: string,
+  label: string,
+): Promise<string> {
+  const prediction = await createPrediction(token, prompt)
 
   let finalPrediction = prediction
   if (prediction.status !== 'succeeded') {
@@ -135,13 +129,61 @@ export async function generateDesign(request: GenerateDesignRequest): Promise<Ge
   if (!imageUrl) {
     throw createError({
       statusCode: 502,
-      statusMessage: 'No image URL in prediction output',
+      statusMessage: `${label}: no image URL in prediction output`,
+    })
+  }
+
+  return imageUrl
+}
+
+export async function generateDesign(request: GenerateDesignRequest): Promise<GenerateDesignResponse> {
+  if (!request.prompt.trim()) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Prompt is required',
+    })
+  }
+
+  const token = getApiToken()
+  const originalPrompt = request.prompt.trim()
+
+  const frontPrompt = enhanceFrontPrompt(originalPrompt, request.style, request.shirtColor)
+  const backPrompt = enhanceBackPrompt(originalPrompt, request.style, request.shirtColor)
+
+  const [frontResult, backResult] = await Promise.all([
+    generateSingleImage(token, frontPrompt, 'Front view').catch((err) => ({ error: err })),
+    generateSingleImage(token, backPrompt, 'Back view').catch((err) => ({ error: err })),
+  ])
+
+  const frontError = 'error' in frontResult ? frontResult.error : null
+  const backError = 'error' in backResult ? backResult.error : null
+  const frontImage = typeof frontResult === 'string' ? frontResult : ''
+  const backImage = typeof backResult === 'string' ? backResult : ''
+
+  if (!frontImage && !backImage) {
+    throw createError({
+      statusCode: 502,
+      statusMessage: 'Both front and back generation failed. Please try again.',
+    })
+  }
+
+  if (!frontImage) {
+    throw createError({
+      statusCode: 502,
+      statusMessage: 'Front view generation failed. Please try regenerating.',
+    })
+  }
+
+  if (!backImage) {
+    throw createError({
+      statusCode: 502,
+      statusMessage: 'Back view generation failed. Please try regenerating.',
     })
   }
 
   return {
-    id: finalPrediction.id,
-    imageUrl,
-    prompt: enhancedPrompt,
+    frontImage,
+    backImage,
+    originalPrompt,
   }
 }

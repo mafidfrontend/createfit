@@ -42,7 +42,7 @@ async function regenerate() {
   designStore.setRegenerating(false)
 
   if (result) {
-    designStore.setGeneratedImage(result.imageUrl)
+    designStore.setGeneratedImages(result.frontImage, result.backImage)
   } else {
     designStore.setGenerateError('Не удалось пересоздать дизайн. Попробуйте ещё раз.')
   }

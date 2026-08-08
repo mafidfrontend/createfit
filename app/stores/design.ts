@@ -64,10 +64,10 @@ export const useDesignStore = defineStore('design', {
       }
     },
 
-    setGeneratedImage(imageUrl: string) {
+    setGeneratedImages(frontImage: string, backImage: string) {
       if (this.current) {
-        this.current.frontImage = imageUrl
-        this.current.backImage = imageUrl
+        this.current.frontImage = frontImage
+        this.current.backImage = backImage
       }
     },
 

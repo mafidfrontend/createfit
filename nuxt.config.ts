@@ -6,17 +6,16 @@ export default defineNuxtConfig({
     compatibilityVersion: 4,
   },
 
-  runtimeConfig: {
-    replicateToken: process.env.REPLICATE_API_TOKEN,
-    public: {}
-  },
-
   modules: [
     '@nuxtjs/tailwindcss',
     '@pinia/nuxt',
     '@vueuse/nuxt',
     'pinia-plugin-persistedstate/nuxt',
   ],
+
+  runtimeConfig: {
+    replicateToken: process.env.REPLICATE_API_TOKEN,
+  },
 
   css: ['~/assets/css/main.css'],
 
