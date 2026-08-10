@@ -48,6 +48,12 @@ export interface GenerateDesignResponse {
   frontImage: string
   backImage: string
   originalPrompt: string
+  success?: true
+}
+
+export interface GenerateDesignErrorResponse {
+  success: false
+  error: string
 }
 
 const STYLE_PROMPT_MAP: Record<DesignStyle, string> = {

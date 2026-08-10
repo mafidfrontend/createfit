@@ -6,16 +6,20 @@ export default defineNuxtConfig({
     compatibilityVersion: 4,
   },
 
+  runtimeConfig: {
+    replicateToken: process.env.REPLICATE_API_TOKEN || '',
+    telegramBotToken: process.env.TELEGRAM_BOT_TOKEN || '',
+    telegramAdminChatId: process.env.TELEGRAM_ADMIN_CHAT_ID || '',
+    supabaseUrl: process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '',
+    supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+  },
+
   modules: [
     '@nuxtjs/tailwindcss',
     '@pinia/nuxt',
     '@vueuse/nuxt',
     'pinia-plugin-persistedstate/nuxt',
   ],
-
-  runtimeConfig: {
-    replicateToken: process.env.REPLICATE_API_TOKEN,
-  },
 
   css: ['~/assets/css/main.css'],
 

@@ -18,6 +18,7 @@ interface TelegramWebApp {
   setHeaderColor: (color: string) => void
   setBackgroundColor: (color: string) => void
   enableClosingConfirmation: () => void
+  sendData: (data: string) => void
   HapticFeedback?: {
     impactOccurred: (style: string) => void
     notificationOccurred: (type: string) => void
@@ -61,6 +62,14 @@ export function useTelegram() {
     getWebApp()?.HapticFeedback?.notificationOccurred(type)
   }
 
+  const getInitData = (): string => {
+    return getWebApp()?.initData ?? ''
+  }
+
+  const getTelegramUser = (): TelegramUser | null => {
+    return getWebApp()?.initDataUnsafe?.user ?? null
+  }
+
   const init = () => {
     onMounted(() => {
       const webApp = getWebApp()
@@ -78,6 +87,8 @@ export function useTelegram() {
     getWebApp,
     haptic,
     hapticNotify,
+    getInitData,
+    getTelegramUser,
     init,
   }
 }

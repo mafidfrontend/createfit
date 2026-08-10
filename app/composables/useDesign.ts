@@ -12,15 +12,30 @@ export function useDesign() {
     error.value = null
 
     try {
-      const response = await $fetch<GenerateDesignResponse>('/api/design/generate', {
-        method: 'POST',
-        body: request,
-      })
-      return response
+      const response = await $fetch<GenerateDesignResponse | { success: false; error: string }>(
+        '/api/design/generate',
+        {
+          method: 'POST',
+          body: request,
+        },
+      )
+
+      if (response && typeof response === 'object' && 'success' in response && response.success === false) {
+        error.value = response.error || 'Не удалось сгенерировать дизайн'
+        return null
+      }
+
+      const data = response as GenerateDesignResponse
+      if (!data.frontImage || !data.backImage) {
+        error.value = 'Сгенерированное изображение неполное — попробуйте ещё раз'
+        return null
+      }
+
+      return data
     } catch (err: unknown) {
       if (err && typeof err === 'object' && 'data' in err) {
-        const data = (err as { data?: { statusMessage?: string } }).data
-        error.value = data?.statusMessage ?? 'Не удалось сгенерировать дизайн'
+        const data = (err as { data?: { statusMessage?: string; error?: string } }).data
+        error.value = data?.error ?? data?.statusMessage ?? 'Не удалось сгенерировать дизайн'
       } else if (err instanceof Error) {
         error.value = err.message
       } else {
