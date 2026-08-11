@@ -1,0 +1,2 @@
+<template><div class="mt-7 flex gap-3"><button v-if="backTo" class="w-1/3 rounded-xl border border-line bg-white px-4 py-3.5 text-sm font-bold text-ink transition hover:border-sage" @click="navigateTo(backTo)">Назад</button><PrimaryButton :disabled="disabled" :loading="loading" @click="$emit('next')">{{ nextLabel }}</PrimaryButton></div></template>
+<script setup lang="ts">defineProps<{ backTo?: string; disabled?: boolean; loading?: boolean; nextLabel?: string }>(); defineEmits<{ next: [] }>()</script>

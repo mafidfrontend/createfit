@@ -1,41 +1,31 @@
 export default defineNuxtConfig({
   compatibilityDate: '2024-04-03',
   devtools: { enabled: false },
-
-  future: {
-    compatibilityVersion: 4,
-  },
-
-  runtimeConfig: {
-    replicateToken: process.env.REPLICATE_API_TOKEN || '',
-    telegramBotToken: process.env.TELEGRAM_BOT_TOKEN || '',
-    telegramAdminChatId: process.env.TELEGRAM_ADMIN_CHAT_ID || '',
-    supabaseUrl: process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '',
-    supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
-  },
-
-  modules: [
-    '@nuxtjs/tailwindcss',
-    '@pinia/nuxt',
-    '@vueuse/nuxt',
-    'pinia-plugin-persistedstate/nuxt',
-  ],
-
+  modules: ['@pinia/nuxt'],
   css: ['~/assets/css/main.css'],
-
+  runtimeConfig: {
+    telegramBotToken: '',
+    telegramAdminChatId: '',
+    supabaseServiceRoleKey: '',
+    public: {
+      appName: 'CreateFit',
+      supabaseUrl: '',
+      supabaseAnonKey: ''
+    }
+  },
+  postcss: {
+    plugins: {
+      tailwindcss: {},
+      autoprefixer: {}
+    }
+  },
   app: {
     head: {
-      title: 'CreateFit',
+      title: 'CreateFit — одежда по вашему дизайну',
       meta: [
-        { charset: 'utf-8' },
-        { name: 'viewport', content: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no' },
-        { name: 'theme-color', content: '#ffffff' },
-      ],
-      link: [
-        { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
-        { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
-        { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap' },
-      ],
-    },
-  },
+        { name: 'theme-color', content: '#f7f8f4' },
+        { name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover' }
+      ]
+    }
+  }
 })

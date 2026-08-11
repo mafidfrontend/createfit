@@ -1,0 +1,20 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { font-family: Arial, Helvetica, sans-serif; color: #111317; background: #fff; }
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; background: #fff; }
+button, input, textarea, select { font: inherit; }
+button { -webkit-tap-highlight-color: transparent; }
+.page-enter-active, .page-leave-active { transition: opacity .18s ease, transform .18s ease; }
+.page-enter-from, .page-leave-to { opacity: 0; transform: translateY(6px); }
+.slide-up { animation: slide-up .22s ease both; }
+@keyframes slide-up { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+.cf-shell { min-height: 100svh; background: #fff; }
+.cf-content { max-width: 430px; margin: 0 auto; padding-bottom: calc(86px + env(safe-area-inset-bottom)); }
+.cf-header { display:flex; align-items:center; justify-content:space-between; height:72px; padding: 0 24px; }
+.cf-logo { font-size: 19px; font-weight: 800; letter-spacing: -0.04em; }
+.cf-menu { width: 34px; height:34px; display:grid; place-items:center; border: 1px solid #DDE2EA; border-radius: 10px; background:#fff; }
+.cf-section-card { border:1px solid #EFF1F5; border-radius:22px; background:#FAFBFD; }
