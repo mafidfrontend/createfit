@@ -11,10 +11,9 @@ export function validateDraft(input: unknown): OrderDraft {
   if (!product) throw createError({ statusCode: 400, statusMessage: 'Выберите изделие' })
   if (!fabric) throw createError({ statusCode: 400, statusMessage: 'Выберите ткань' })
   if (!draft.design || !draft.size) throw createError({ statusCode: 400, statusMessage: 'Заполните дизайн и размер' })
-  if (!['click', 'payme', 'uzum', 'visa'].includes(draft.paymentMethod as string)) throw createError({ statusCode: 400, statusMessage: 'Выберите способ оплаты' })
   if (!draft.delivery?.city?.trim() || !draft.delivery.address?.trim()) throw createError({ statusCode: 400, statusMessage: 'Введите город и адрес доставки' })
   const subtotal = calculateSubtotal(product, fabric, draft.design.additionalPrice)
-  return { ...draft, product, fabric, subtotal, deliveryPrice: DELIVERY_PRICE, totalPrice: calculateTotal(product, fabric, draft.design.additionalPrice, DELIVERY_PRICE), manufacturingDays: MANUFACTURING_DAYS, paymentStatus: 'pending', delivery: { ...draft.delivery, price: DELIVERY_PRICE } } as OrderDraft
+  return { ...draft, product, fabric, subtotal, deliveryPrice: DELIVERY_PRICE, totalPrice: calculateTotal(product, fabric, draft.design.additionalPrice, DELIVERY_PRICE), manufacturingDays: MANUFACTURING_DAYS, paymentStatus: 'pending', paymentMethod: null, delivery: { ...draft.delivery, price: DELIVERY_PRICE } } as OrderDraft
 }
 
 export async function saveOrder(order: OrderDraft, id: string, createdAt: string): Promise<void> {
@@ -23,7 +22,29 @@ export async function saveOrder(order: OrderDraft, id: string, createdAt: string
   const serviceRoleKey = config.supabaseServiceRoleKey || process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!supabaseUrl || !serviceRoleKey) return
   const supabase = createClient(supabaseUrl, serviceRoleKey)
-  const { error } = await supabase.from('orders').insert({ id, telegram_id: order.customer.telegramId, first_name: order.customer.firstName, last_name: order.customer.lastName, username: order.customer.username, phone: order.customer.phone, product: order.product, fabric: order.fabric, design: order.design, size: order.size?.standardSize, custom_measurements: order.size?.customMeasurements, payment_method: order.paymentMethod as PaymentMethod, payment_status: order.paymentStatus, subtotal: order.subtotal, delivery_price: order.deliveryPrice, total_price: order.totalPrice, city: order.delivery.city, address: order.delivery.address, comment: order.delivery.comment, manufacturing_days: order.manufacturingDays, created_at: createdAt })
+  const { error } = await supabase.from('orders').insert({
+    id,
+    telegram_id: order.customer.telegramId,
+    first_name: order.customer.firstName,
+    last_name: order.customer.lastName,
+    username: order.customer.username,
+    phone: order.customer.phone,
+    product: order.product,
+    fabric: order.fabric,
+    design: order.design,
+    size: order.size?.type === 'custom' ? 'Индивидуальный' : order.size?.standardSize,
+    custom_measurements: order.size?.customMeasurements,
+    payment_method: order.paymentMethod as PaymentMethod | null,
+    payment_status: order.paymentStatus,
+    subtotal: order.subtotal,
+    delivery_price: order.deliveryPrice,
+    total_price: order.totalPrice,
+    city: order.delivery.city,
+    address: order.delivery.address,
+    comment: order.delivery.comment,
+    manufacturing_days: order.manufacturingDays,
+    created_at: createdAt
+  })
   if (error) throw createError({ statusCode: 500, statusMessage: 'Не удалось сохранить заказ' })
 }
 
@@ -34,6 +55,37 @@ export async function notifyAdmin(order: OrderDraft, id: string, createdAt: stri
   if (!botToken || !adminChatId) return
   const username = order.customer.username ? `@${order.customer.username}` : 'не указан'
   const measurements = order.size?.customMeasurements
-  const text = [`НОВЫЙ ЗАКАЗ`, `Заказ: #${id}`, '', `КЛИЕНТ`, `Имя: ${order.customer.firstName || 'не указано'}`, `Фамилия: ${order.customer.lastName || 'не указана'}`, `Телефон: ${order.customer.phone}`, `Telegram: ${username}`, `Telegram ID: ${order.customer.telegramId}`, '', `ИЗДЕЛИЕ`, `Изделие: ${order.product?.name}`, `Ткань: ${order.fabric?.name}`, `Дизайн: ${order.design?.type === 'uploaded' ? 'Загруженный дизайн' : order.design?.existingDesignName}`, `Размер: ${order.size?.type === 'custom' ? 'Индивидуальный' : order.size?.standardSize}`, ...(measurements ? [`Рост: ${measurements.height}`, `Грудь: ${measurements.chest}`, `Талия: ${measurements.waist}`, `Бёдра: ${measurements.hips}`] : []), '', `ОПЛАТА`, `Изделие: $${order.product?.basePrice}`, `Ткань: +$${order.fabric?.additionalPrice}`, `Доставка: $${order.deliveryPrice}`, `ИТОГО: $${order.totalPrice}`, `Способ оплаты: ${order.paymentMethod}`, `Статус: Ожидает оплаты`, '', `ДОСТАВКА`, `Город: ${order.delivery.city}`, `Адрес: ${order.delivery.address}`, `Срок изготовления: 7 дней`, `Дата: ${new Date(createdAt).toLocaleString('ru-RU')}`].join('\n')
+  const designLabel = order.design?.type === 'ai' ? `AI: ${order.design.aiPrompt ?? ''}` : order.design?.type === 'uploaded' ? 'Загруженный дизайн' : order.design?.existingDesignName
+  const text = [
+    `НОВЫЙ ЗАКАЗ`,
+    `Заказ: #${id}`,
+    '',
+    `КЛИЕНТ`,
+    `Имя: ${order.customer.firstName || 'не указано'}`,
+    `Фамилия: ${order.customer.lastName || 'не указана'}`,
+    `Телефон: ${order.customer.phone}`,
+    `Telegram: ${username}`,
+    `Telegram ID: ${order.customer.telegramId}`,
+    '',
+    `ИЗДЕЛИЕ`,
+    `Изделие: ${order.product?.name}`,
+    `Ткань: ${order.fabric?.name}`,
+    `Дизайн: ${designLabel}`,
+    `Размер: ${order.size?.type === 'custom' ? 'Индивидуальный' : order.size?.standardSize}`,
+    ...(measurements ? [`Рост: ${measurements.height}`, `Грудь: ${measurements.chest}`, `Талия: ${measurements.waist}`, `Бёдра: ${measurements.hips}`] : []),
+    '',
+    `ЗАКАЗ`,
+    `Изделие: ${order.product?.basePrice}`,
+    `Ткань: +${order.fabric?.additionalPrice}`,
+    `Доставка: ${order.deliveryPrice}`,
+    `ИТОГО: ${order.totalPrice}`,
+    `Статус: Заказ принят`,
+    '',
+    `ДОСТАВКА`,
+    `Город: ${order.delivery.city}`,
+    `Адрес: ${order.delivery.address}`,
+    `Срок изготовления: 7 дней`,
+    `Дата: ${new Date(createdAt).toLocaleString('ru-RU')}`
+  ].join('\n')
   await $fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, { method: 'POST', body: { chat_id: adminChatId, text } })
 }

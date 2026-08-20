@@ -26,7 +26,12 @@
       <div v-for="order in orders" :key="order.id" class="rounded-2xl border border-line bg-white p-5">
         <div class="flex items-center justify-between">
           <span class="text-sm font-bold text-sage">Заказ #{{ order.id }}</span>
-          <span class="rounded-full px-3 py-1 text-xs font-bold" :class="statusBadge(order.payment_status)">{{ statusLabel(order.payment_status) }}</span>
+          <span class="rounded-full bg-mint px-3 py-1 text-xs font-bold text-sage">{{ statusLabel(order.payment_status) }}</span>
+        </div>
+
+        <div v-if="order.design?.aiFrontImage" class="mt-4 grid grid-cols-2 gap-2">
+          <img :src="order.design.aiFrontImage" alt="Дизайн спереди" class="w-full rounded-xl" />
+          <img v-if="order.design.aiBackImage" :src="order.design.aiBackImage" alt="Дизайн сзади" class="w-full rounded-xl" />
         </div>
 
         <div class="mt-4 space-y-2 text-sm">
@@ -51,7 +56,7 @@ interface OrderRow {
   id: string
   product: { name: string } | null
   fabric: { name: string } | null
-  design: { type: string; existingDesignName: string | null } | null
+  design: { type: string; existingDesignName: string | null; uploadedImageUrl: string | null; aiPrompt: string | null; aiFrontImage: string | null; aiBackImage: string | null } | null
   size: string | null
   custom_measurements: Record<string, string> | null
   payment_status: string
@@ -87,18 +92,8 @@ async function loadOrders(): Promise<void> {
 onMounted(loadOrders)
 
 function statusLabel(status: string): string {
-  const map: Record<string, string> = { pending: 'Ожидает оплаты', paid: 'Оплачен', failed: 'Ошибка оплаты', cancelled: 'Отменён' }
-  return map[status] ?? status
-}
-
-function statusBadge(status: string): string {
-  const map: Record<string, string> = {
-    pending: 'bg-mint text-sage',
-    paid: 'bg-[#E8F5E9] text-[#2E7D32]',
-    failed: 'bg-[#FDECEA] text-terracotta',
-    cancelled: 'bg-[#E9EDF3] text-ink/55'
-  }
-  return map[status] ?? 'bg-[#E9EDF3] text-ink/55'
+  const map: Record<string, string> = { pending: 'Заказ принят', paid: 'В работе', failed: 'Нужно уточнение', cancelled: 'Отменён' }
+  return map[status] ?? 'Заказ принят'
 }
 
 function sizeLabel(order: OrderRow): string {
@@ -109,7 +104,9 @@ function sizeLabel(order: OrderRow): string {
 
 function designLabel(order: OrderRow): string {
   if (!order.design) return '—'
-  return order.design.type === 'uploaded' ? 'Свой дизайн' : (order.design.existingDesignName ?? '—')
+  if (order.design.type === 'ai') return order.design.aiPrompt ? `AI: ${order.design.aiPrompt.slice(0, 40)}${order.design.aiPrompt.length > 40 ? '...' : ''}` : 'AI дизайн'
+  if (order.design.type === 'uploaded') return 'Свой дизайн'
+  return order.design.existingDesignName ?? '—'
 }
 
 function formatDate(iso: string): string {

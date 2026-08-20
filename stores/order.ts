@@ -3,7 +3,7 @@ import { DELIVERY_PRICE, MANUFACTURING_DAYS } from '~/config/catalog'
 import { calculateSubtotal, calculateTotal } from '~/utils/pricing'
 import type { CreatedOrder, Customer, Delivery, Design, Fabric, OrderDraft, PaymentMethod, Product, SizeSelection } from '~/types/order'
 
-const emptyCustomer: Customer = { telegramId: null, firstName: '', lastName: '', username: null, phone: '' }
+const emptyCustomer: Customer = { telegramId: null, firstName: '', lastName: '', username: null, phone: '', countryCode: '+998' }
 const emptyDelivery: Delivery = { city: '', address: '', comment: '', price: DELIVERY_PRICE }
 
 export const useOrderStore = defineStore('createfit-order', {

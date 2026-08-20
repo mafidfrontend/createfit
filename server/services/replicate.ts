@@ -1,196 +1,53 @@
-import { enhanceFrontPrompt, enhanceBackPrompt, type GenerateDesignRequest, type GenerateDesignResponse } from '~/types/design'
+import type { GenerateDesignRequest, GenerateDesignResponse, DesignStyle, ShirtColor } from '~/types/design'
 
-const REPLICATE_API_BASE = 'https://api.replicate.com/v1'
-const FLUX_MODEL = 'black-forest-labs/flux-1.1-pro'
-
-const MAX_POLL_ATTEMPTS = 30
-const POLL_INTERVAL_MS = 2000
-
-type PredictionStatus = 'starting' | 'processing' | 'succeeded' | 'failed' | 'canceled'
-
-interface ReplicatePrediction {
-  id: string
-  status: PredictionStatus
-  output: string | string[] | null
-  error: string | null
-  urls: {
-    get: string
-  }
+const styleLabels: Record<DesignStyle, string> = {
+  minimal: 'minimalist, clean lines, understated',
+  streetwear: 'streetwear, urban, edgy',
+  classic: 'classic, timeless, elegant',
+  sport: 'sporty, athletic, dynamic',
+  artistic: 'artistic, creative, expressive'
 }
 
-interface GenerationResult {
-  success: boolean
-  image: string
-  error: string
+const colorLabels: Record<ShirtColor, string> = {
+  white: 'white', black: 'black', gray: 'gray', navy: 'navy blue', red: 'red', green: 'green', blue: 'blue', sand: 'sand beige'
 }
 
-interface ReplicateApiError {
-  statusCode: number
-  message: string
+function buildPrompt(request: GenerateDesignRequest): string {
+  const parts = [
+    `A ${colorLabels[request.color]} ${request.productName.toLowerCase()}`,
+    `made of ${request.fabric.toLowerCase()} fabric`,
+    `${styleLabels[request.style]} clothing design`
+  ]
+  if (request.prompt.trim()) parts.push(`design concept: ${request.prompt.trim()}`)
+  if (request.logoImageName) parts.push(`preserve the visual identity of the uploaded logo or artwork named ${request.logoImageName}`)
+  if (request.bodyInfo) parts.push(`fit the following estimated body proportions: ${request.bodyInfo}`)
+  return parts.join(', ')
 }
 
-function createApiError(statusCode: number, message: string): ReplicateApiError {
-  return { statusCode, message }
-}
+const negativePrompt = 'multiple people, collage, split screen, duplicate person, watermark, text overlay, distorted clothing, blurry, low quality'
 
-function isApiError(obj: unknown): obj is ReplicateApiError {
-  return typeof obj === 'object' && obj !== null && 'statusCode' in obj && 'message' in obj
-}
-
-function getApiToken(): string {
-  const config = useRuntimeConfig()
-  const token = config.replicateToken
-  if (!token) {
-    throw createApiError(500, 'Replicate API token is not configured')
-  }
-  return token
-}
-
-async function createPrediction(token: string, prompt: string, seed: number, label: string): Promise<ReplicatePrediction> {
-  console.log(`[${label}] Creating prediction — seed: ${seed}`)
-
-  const response = await fetch(`${REPLICATE_API_BASE}/predictions`, {
+async function createImage(prompt: string, token: string, referenceImage: string | null): Promise<string> {
+  const response = await $fetch<{ output?: string | string[]; error?: string }>('https://api.replicate.com/v1/models/stability-ai/sdxl/predictions', {
     method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: FLUX_MODEL,
-      input: {
-        prompt,
-        aspect_ratio: '1:1',
-        output_format: 'webp',
-        output_quality: 90,
-        safety_tolerance: 2,
-        seed,
-      },
-    }),
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', Prefer: 'wait' },
+    body: { input: { prompt, negative_prompt: negativePrompt, width: 768, height: 1024, num_outputs: 1, ...(referenceImage ? { image: referenceImage } : {}) } },
+    timeout: 120000
   })
-
-  if (!response.ok) {
-    const errorBody = await response.text().catch(() => 'unknown')
-    console.error(`[${label}] Prediction creation failed: ${response.status} ${response.statusText} — ${errorBody}`)
-    throw createApiError(response.status, `Replicate prediction failed: ${response.statusText}`)
-  }
-
-  const prediction = await response.json() as ReplicatePrediction
-  console.log(`[${label}] Prediction created — id: ${prediction.id}, status: ${prediction.status}`)
-  return prediction
-}
-
-async function pollPrediction(token: string, predictionUrl: string, label: string): Promise<ReplicatePrediction> {
-  for (let attempt = 1; attempt <= MAX_POLL_ATTEMPTS; attempt++) {
-    const response = await fetch(predictionUrl, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-
-    if (!response.ok) {
-      console.error(`[${label}] Poll attempt ${attempt} failed: ${response.status} ${response.statusText}`)
-      throw createApiError(response.status, `Failed to poll prediction: ${response.statusText}`)
-    }
-
-    const prediction = await response.json() as ReplicatePrediction
-    console.log(`[${label}] Poll attempt ${attempt}/${MAX_POLL_ATTEMPTS} — status: ${prediction.status}`)
-
-    if (prediction.status === 'succeeded') {
-      return prediction
-    }
-
-    if (prediction.status === 'failed' || prediction.status === 'canceled') {
-      const errorMsg = prediction.error ?? `Prediction ${prediction.status}`
-      console.error(`[${label}] Prediction ${prediction.status}: ${errorMsg}`)
-      throw createApiError(502, errorMsg)
-    }
-
-    await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS))
-  }
-
-  console.error(`[${label}] Prediction timed out after ${MAX_POLL_ATTEMPTS} attempts`)
-  throw createApiError(504, 'Prediction timed out — please try again')
-}
-
-function extractImageUrl(prediction: ReplicatePrediction, label: string): string {
-  if (!prediction.output) {
-    console.error(`[${label}] Prediction returned no output`)
-    throw createApiError(502, 'Prediction returned no image output')
-  }
-
-  const imageUrl = Array.isArray(prediction.output)
-    ? (prediction.output[0] ?? '')
-    : prediction.output
-
-  if (!imageUrl) {
-    console.error(`[${label}] Prediction output was empty`)
-    throw createApiError(502, 'Prediction returned an empty image URL')
-  }
-
-  return imageUrl
-}
-
-async function generateSingleImage(
-  token: string,
-  prompt: string,
-  seed: number,
-  label: string,
-): Promise<GenerationResult> {
-  try {
-    const prediction = await createPrediction(token, prompt, seed, label)
-
-    let finalPrediction = prediction
-    if (prediction.status !== 'succeeded') {
-      finalPrediction = await pollPrediction(token, prediction.urls.get, label)
-    }
-
-    const imageUrl = extractImageUrl(finalPrediction, label)
-    console.log(`[${label}] Generation succeeded — image URL obtained`)
-    return { success: true, image: imageUrl, error: '' }
-  } catch (err: unknown) {
-    const message = isApiError(err) ? err.message : err instanceof Error ? err.message : 'Unknown error'
-    console.error(`[${label}] Generation failed: ${message}`)
-    return { success: false, image: '', error: message }
-  }
+  if (response.error) throw new Error(response.error)
+  if (Array.isArray(response.output)) return response.output[0]
+  if (typeof response.output === 'string') return response.output
+  throw new Error('Replicate returned no image')
 }
 
 export async function generateDesign(request: GenerateDesignRequest): Promise<GenerateDesignResponse> {
-  const originalPrompt = request.prompt.trim()
+  const config = useRuntimeConfig()
+  const token = config.replicateApiToken || process.env.REPLICATE_API_TOKEN
+  if (!token) throw createError({ statusCode: 503, statusMessage: 'Генерация дизайна сейчас недоступна.' })
 
-  if (!originalPrompt) {
-    throw createApiError(400, 'Prompt is required')
-  }
-
-  const token = getApiToken()
-  const style = request.style
-  const shirtColor = request.shirtColor
-
-  console.log(`[generateDesign] Request received — prompt: "${originalPrompt}", style: ${style}, shirtColor: ${shirtColor}`)
-
-  const sharedSeed = Math.floor(Math.random() * 2_147_483_647)
-  const frontPrompt = enhanceFrontPrompt(originalPrompt, style, shirtColor)
-  const backPrompt = enhanceBackPrompt(originalPrompt, style, shirtColor)
-
-  console.log('[generateDesign] Starting front view generation')
-  const frontResult = await generateSingleImage(token, frontPrompt, sharedSeed, 'Front')
-
-  if (!frontResult.success) {
-    console.error(`[generateDesign] Front view failed — aborting before back view. Error: ${frontResult.error}`)
-    throw createApiError(502, `Front view generation failed: ${frontResult.error}`)
-  }
-
-  console.log('[generateDesign] Starting back view generation')
-  const backResult = await generateSingleImage(token, backPrompt, sharedSeed, 'Back')
-
-  if (!backResult.success) {
-    console.error(`[generateDesign] Back view failed. Front succeeded but back did not. Error: ${backResult.error}`)
-    throw createApiError(502, `Back view generation failed: ${backResult.error}. Please regenerate.`)
-  }
-
-  console.log('[generateDesign] Both views generated successfully')
-  return {
-    frontImage: frontResult.image,
-    backImage: backResult.image,
-    originalPrompt,
-  }
+  const basePrompt = buildPrompt(request)
+  const [frontImage, backImage] = await Promise.all([
+    createImage(`${basePrompt}. Exactly one person, full body, strictly front-facing, garment and design clearly visible, clean studio product photography, no background distractions.`, token, request.logoImageBase64 ?? null),
+    createImage(`${basePrompt}. Exactly one person, full body, strictly back-facing, same person, proportions, outfit and style, face not visible from the front, garment and back design clearly visible, clean studio product photography, no background distractions.`, token, request.logoImageBase64 ?? null)
+  ])
+  return { frontImage, backImage, originalPrompt: basePrompt }
 }
-
-export { createApiError, isApiError, type ReplicateApiError, type GenerateDesignResponse }

@@ -1,109 +1,65 @@
-import type { ProductType, Fabric } from '~/types'
+import type { Product, Fabric } from '~/app/types/order'
 
-export const PRODUCTS: ProductType[] = [
+export const products: Product[] = [
   {
-    id: 'tshirt',
+    id: 'tshirt-mens',
     name: 'Футболка',
-    slug: 'tshirt',
-    basePrice: 1490,
-    icon: 'tshirt',
-    sizes: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
+    price: 25,
+    image: '/images/products/tshirt-mens.jpg'
   },
   {
-    id: 'hoodie',
-    name: 'Худи',
-    slug: 'hoodie',
-    basePrice: 2990,
-    icon: 'hoodie',
-    sizes: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
+    id: 'tshirt-womens',
+    name: 'Женская футболка',
+    price: 25,
+    image: '/images/products/tshirt-womens.jpg'
   },
   {
-    id: 'polo',
-    name: 'Поло',
-    slug: 'polo',
-    basePrice: 1990,
-    icon: 'polo',
-    sizes: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
+    id: 'tshirt-kids',
+    name: 'Детская футболка',
+    price: 20,
+    image: '/images/products/tshirt-kids.jpg'
   },
   {
-    id: 'longsleeve',
-    name: 'Лонгслив',
-    slug: 'longsleeve',
-    basePrice: 1790,
-    icon: 'longsleeve',
-    sizes: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
+    id: 'set-tshirt-shorts',
+    name: 'Комплект — футболка + шорты',
+    price: 45,
+    image: '/images/products/set-tshirt-shorts.jpg'
   },
+  {
+    id: 'tracksuit',
+    name: 'Спортивный костюм',
+    price: 75,
+    image: '/images/products/tracksuit.jpg'
+  }
 ]
 
-export const FABRICS: Fabric[] = [
+export const fabrics: Fabric[] = [
   {
-    id: 'cotton',
-    name: 'Хлопок',
-    description: 'Мягкий и приятный к телу',
-    priceModifier: 0,
-    swatchColor: '#f9fafb',
-    icon: 'cotton',
-    features: [
-      'Мягкий и приятный к телу',
-      'Хорошо пропускает воздух',
-      'Для повседневной носки',
-    ],
+    id: 'cotton-basic',
+    name: 'Базовый хлопок',
+    description: 'Мягкий и дышащий материал',
+    image: '/images/fabrics/cotton-basic.jpg',
+    price: 0
   },
   {
-    id: 'polyester',
-    name: 'Спорт – полиэстер',
-    description: 'Лёгкий и прочный',
-    priceModifier: 200,
-    swatchColor: '#e5e7eb',
-    icon: 'polyester',
-    features: [
-      'Лёгкий и прочный',
-      'Быстро сохнет',
-      'Отводит влагу',
-      'Для тренировок и спорта',
-    ],
+    id: 'cotton-premium',
+    name: 'Премиум хлопок',
+    description: 'Плотный качественный хлопок',
+    image: '/images/fabrics/cotton-premium.jpg',
+    price: 5
   },
   {
-    id: 'linen',
-    name: 'Лён',
-    description: 'Натуральный и дышащий',
-    priceModifier: 400,
-    swatchColor: '#d6d3d1',
-    icon: 'linen',
-    features: [
-      'Натуральный материал',
-      'Отлично дышит',
-      'Прохладный в жару',
-      'Гипоаллергенный',
-    ],
+    id: 'polyester-sport',
+    name: 'Спортивный полиэстер',
+    description: 'Влагоотводящий материал',
+    image: '/images/fabrics/polyester-sport.jpg',
+    price: 7
   },
   {
-    id: 'blend',
-    name: 'Микс (хлопок + полиэстер)',
-    description: 'Лучшее из двух материалов',
-    priceModifier: 300,
-    swatchColor: '#cbd5e1',
-    icon: 'blend',
-    features: [
-      'Устойчив к деформации',
-      'Сохраняет форму',
-      'Универсальный вариант',
-      'Износостойкий',
-    ],
-  },
+    id: 'cotton-poly-blend',
+    name: 'Хлопок-полиэстер',
+    description: 'Прочная смесовая ткань',
+    image: '/images/fabrics/cotton-poly-blend.jpg',
+    price: 3
+  }
 ]
-
-export function getProductById(id: string): ProductType | undefined {
-  return PRODUCTS.find((p) => p.id === id)
-}
-
-export function getFabricById(id: string): Fabric | undefined {
-  return FABRICS.find((f) => f.id === id)
-}
-
-export function calculatePrice(productId: string, fabricId: string): number {
-  const product = getProductById(productId)
-  const fabric = getFabricById(fabricId)
-  if (!product || !fabric) return 0
-  return product.basePrice + fabric.priceModifier
-}

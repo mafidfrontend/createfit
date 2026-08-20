@@ -7,6 +7,8 @@ export default defineNuxtConfig({
     telegramBotToken: '',
     telegramAdminChatId: '',
     supabaseServiceRoleKey: '',
+    replicateApiToken: '',
+    geminiApiKey: '',
     public: {
       appName: 'CreateFit',
       supabaseUrl: '',

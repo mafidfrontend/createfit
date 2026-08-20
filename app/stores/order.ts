@@ -1,163 +1,138 @@
 import { defineStore } from 'pinia'
 import type {
-  Order,
-  CartItem,
-  PersonalInfo,
-  Measurements,
-  DeliveryMethodId,
-  PaymentMethodId,
-} from '~/types'
-import { DELIVERY_METHODS, validatePromo } from '~/config/checkout'
+  OrderState,
+  Contact,
+  Product,
+  Fabric,
+  Design,
+  Size,
+  Delivery
+} from '~/app/types/order'
 
-interface OrderState {
-  current: Order | null
-  history: Order[]
-  isProcessing: boolean
-  isConfirmed: boolean
-  deliveryMethodId: DeliveryMethodId
-  paymentMethodId: PaymentMethodId
-  promoCode: string
-  appliedPromo: string | null
-  discount: number
-  notes: string
-  contactInfo: PersonalInfo
-}
-
-const defaultContactInfo: PersonalInfo = {
-  fullName: '',
-  email: '',
-  phone: '',
-  address: '',
-  city: '',
-  postalCode: '',
-}
+const DELIVERY_PRICE = 7
 
 export const useOrderStore = defineStore('order', {
   state: (): OrderState => ({
-    current: null,
-    history: [],
-    isProcessing: false,
-    isConfirmed: false,
-    deliveryMethodId: 'courier',
-    paymentMethodId: 'card',
-    promoCode: '',
-    appliedPromo: null,
-    discount: 0,
-    notes: '',
-    contactInfo: { ...defaultContactInfo },
+    contact: null,
+    product: null,
+    fabric: null,
+    design: null,
+    size: null,
+    delivery: null,
+    pricing: {
+      productPrice: 0,
+      fabricPrice: 0,
+      designPrice: 0,
+      deliveryPrice: DELIVERY_PRICE,
+      total: DELIVERY_PRICE
+    },
+    payment: {
+      status: 'pending'
+    }
   }),
 
   getters: {
-    deliveryMethod: (state) => {
-      return DELIVERY_METHODS.find((d) => d.id === state.deliveryMethodId) ?? DELIVERY_METHODS[1]
+    isContactComplete: (state) => {
+      return !!(state.contact?.name && state.contact?.phone)
     },
 
-    deliveryPrice(): number {
-      return this.deliveryMethod.price
+    isProductSelected: (state) => {
+      return !!state.product
     },
 
-    subtotal(): number {
-      if (!this.current) return 0
-      return this.current.items.reduce((sum, item) => sum + item.price * item.quantity, 0)
+    isFabricSelected: (state) => {
+      return !!state.fabric
     },
 
-    discountAmount(): number {
-      return Math.round((this.subtotal * this.discount) / 100)
+    isDesignSelected: (state) => {
+      return !!state.design
     },
 
-    total(): number {
-      return Math.max(0, this.subtotal - this.discountAmount) + this.deliveryPrice
+    isSizeSelected: (state) => {
+      return !!state.size
     },
 
-    contactInfoValid: (state): boolean => {
-      const { fullName, phone, address, city, postalCode } = state.contactInfo
-      return (
-        fullName.trim() !== '' &&
-        phone.trim() !== '' &&
-        address.trim() !== '' &&
-        city.trim() !== '' &&
-        postalCode.trim() !== ''
+    isDeliveryComplete: (state) => {
+      return !!(state.delivery?.city && state.delivery?.address && state.delivery?.phone)
+    },
+
+    totalPrice: (state) => {
+      return state.pricing.total
+    },
+
+    canProceedToPayment: (state) => {
+      return !!(
+        state.contact &&
+        state.product &&
+        state.fabric &&
+        state.design &&
+        state.size
       )
-    },
+    }
   },
 
   actions: {
-    setDeliveryMethod(id: DeliveryMethodId) {
-      this.deliveryMethodId = id
+    setContact(contact: Contact) {
+      this.contact = contact
     },
 
-    setPaymentMethod(id: PaymentMethodId) {
-      this.paymentMethodId = id
+    setProduct(product: Product) {
+      this.product = product
+      this.updatePricing()
     },
 
-    setPromoCode(code: string) {
-      this.promoCode = code
+    setFabric(fabric: Fabric) {
+      this.fabric = fabric
+      this.updatePricing()
     },
 
-    applyPromo(): boolean {
-      const promo = validatePromo(this.promoCode)
-      if (promo) {
-        this.appliedPromo = promo.code
-        this.discount = promo.discountPercent
-        return true
+    setDesign(design: Design) {
+      this.design = design
+      this.updatePricing()
+    },
+
+    setSize(size: Size) {
+      this.size = size
+    },
+
+    setDelivery(delivery: Delivery) {
+      this.delivery = delivery
+    },
+
+    updatePricing() {
+      this.pricing.productPrice = this.product?.price || 0
+      this.pricing.fabricPrice = this.fabric?.price || 0
+      this.pricing.designPrice = this.design?.price || 0
+      this.pricing.deliveryPrice = DELIVERY_PRICE
+
+      this.pricing.total =
+        this.pricing.productPrice +
+        this.pricing.fabricPrice +
+        this.pricing.designPrice +
+        this.pricing.deliveryPrice
+    },
+
+    setPaymentStatus(status: 'pending' | 'paid' | 'failed') {
+      this.payment.status = status
+    },
+
+    resetOrder() {
+      this.contact = null
+      this.product = null
+      this.fabric = null
+      this.design = null
+      this.size = null
+      this.delivery = null
+      this.pricing = {
+        productPrice: 0,
+        fabricPrice: 0,
+        designPrice: 0,
+        deliveryPrice: DELIVERY_PRICE,
+        total: DELIVERY_PRICE
       }
-      this.appliedPromo = null
-      this.discount = 0
-      return false
-    },
-
-    removePromo() {
-      this.promoCode = ''
-      this.appliedPromo = null
-      this.discount = 0
-    },
-
-    setNotes(notes: string) {
-      this.notes = notes
-    },
-
-    updateContactInfo(field: keyof PersonalInfo, value: string) {
-      this.contactInfo[field] = value
-    },
-
-    createOrder(items: CartItem[], measurements: Measurements) {
-      this.current = {
-        id: crypto.randomUUID(),
-        items,
-        personalInfo: { ...this.contactInfo },
-        measurements,
-        total: this.total,
-        deliveryPrice: this.deliveryPrice,
-        deliveryMethod: this.deliveryMethodId,
-        paymentMethod: this.paymentMethodId,
-        promoCode: this.appliedPromo,
-        discount: this.discountAmount,
-        notes: this.notes,
-        status: 'pending',
-        createdAt: new Date().toISOString(),
+      this.payment = {
+        status: 'pending'
       }
-    },
-
-    async placeOrder(): Promise<void> {
-      this.isProcessing = true
-      await new Promise((resolve) => setTimeout(resolve, 2000))
-      this.isProcessing = false
-      this.isConfirmed = true
-      if (this.current) {
-        this.current.status = 'confirmed'
-        this.history.push({ ...this.current })
-      }
-    },
-
-    reset() {
-      this.current = null
-      this.isProcessing = false
-      this.isConfirmed = false
-      this.promoCode = ''
-      this.appliedPromo = null
-      this.discount = 0
-      this.notes = ''
-      this.contactInfo = { ...defaultContactInfo }
-    },
-  },
+    }
+  }
 })
