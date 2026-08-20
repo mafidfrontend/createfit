@@ -30,6 +30,7 @@
 </template>
 
 <script setup lang="ts">
+useSeoMeta({ robots: 'noindex, nofollow' })
 const order = useOrderStore()
 const { customer, requestContact, webApp } = useTelegram()
 const error = ref('')

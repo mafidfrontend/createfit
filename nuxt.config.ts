@@ -9,8 +9,10 @@ export default defineNuxtConfig({
     supabaseServiceRoleKey: '',
     replicateApiToken: '',
     geminiApiKey: '',
+    siteUrl: process.env.NUXT_PUBLIC_SITE_URL || 'https://fabrika.chat',
     public: {
-      appName: 'CreateFit',
+      appName: 'Fabrika',
+      siteUrl: process.env.NUXT_PUBLIC_SITE_URL || 'https://fabrika.chat',
       supabaseUrl: '',
       supabaseAnonKey: ''
     }
@@ -23,10 +25,20 @@ export default defineNuxtConfig({
   },
   app: {
     head: {
-      title: 'CreateFit — одежда по вашему дизайну',
+      htmlAttrs: { lang: 'ru' },
+      title: 'Fabrika — AI-Powered Custom Clothing',
+      titleTemplate: '%s | Fabrika',
       meta: [
-        { name: 'theme-color', content: '#f7f8f4' },
-        { name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover' }
+        { name: 'theme-color', content: '#145DFF' },
+        { name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover' },
+        { name: 'author', content: 'Fabrika' },
+        { name: 'robots', content: 'index, follow' },
+        { name: 'format-detection', content: 'telephone=no' }
+      ],
+      link: [
+        { rel: 'icon', type: 'image/png', href: '/favicon-32.png' },
+        { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' },
+        { rel: 'manifest', href: '/site.webmanifest' }
       ]
     }
   }

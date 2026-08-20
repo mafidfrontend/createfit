@@ -12,6 +12,7 @@
   </div>
 </template>
 <script setup lang="ts">
+useSeoMeta({ robots: 'noindex, nofollow' })
 const order = useOrderStore()
 const created = computed(() => order.createdOrder)
 function backHome(): void { order.reset(); navigateTo('/') }

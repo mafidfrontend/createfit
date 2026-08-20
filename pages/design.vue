@@ -115,6 +115,7 @@ import { DESIGN_STYLES, SHIRT_COLORS } from '~/types/design'
 import type { Design } from '~/types/order'
 import type { DesignStyle, ShirtColor, GenerateDesignResponse } from '~/types/design'
 
+useSeoMeta({ robots: 'noindex, nofollow' })
 const order = useOrderStore()
 const error = ref('')
 const activeTab = ref<'existing' | 'upload' | 'ai'>('existing')

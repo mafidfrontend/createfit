@@ -52,6 +52,8 @@
 <script setup lang="ts">
 import { formatUsd } from '~/utils/pricing'
 
+useSeoMeta({ robots: 'noindex, nofollow' })
+
 interface OrderRow {
   id: string
   product: { name: string } | null

@@ -17,6 +17,7 @@
 </template>
 <script setup lang="ts">
 import { formatUsd } from '~/utils/pricing'
+useSeoMeta({ robots: 'noindex, nofollow' })
 const order = useOrderStore()
 const city = ref(order.draft.delivery.city)
 const address = ref(order.draft.delivery.address)

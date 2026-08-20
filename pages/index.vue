@@ -12,8 +12,8 @@
         </div>
       </div>
       <!-- T-shirt visual -->
-      <div class="pointer-events-none absolute -bottom-2 -right-24 z-0 h-[380px] w-[320px]">
-        <img :src="'/images/image.png'" alt="" class="h-full w-full object-contain object-center drop-shadow-[0_18px_28px_rgba(20,93,255,0.16)]" />
+      <div class="pointer-events-none absolute -bottom-2 -right-12 z-0 h-[380px] w-[320px]">
+        <img :src="'/images/image.png'" alt="Пример готового изделия Fabrika — футболка с AI-дизайном" class="h-full w-full object-contain object-center drop-shadow-[0_18px_28px_rgba(20,93,255,0.16)]" />
       </div>
     </section>
 
@@ -42,6 +42,48 @@
 </template>
 
 <script setup lang="ts">
+const config = useRuntimeConfig()
+const siteUrl = (config.public.siteUrl as string).replace(/\/$/, '')
+
+useSeoMeta({
+  title: 'Fabrika — AI-Powered Custom Clothing',
+  description: 'Создай уникальное изделие с помощью AI и получи идеальную посадку без примерки. Дизайн, мерки и заказ — всё онлайн на Fabrika.',
+  keywords: 'AI fashion, custom clothing, дизайн одежды, индивидуальный пошив, AI дизайн, мерки онлайн',
+  ogTitle: 'Fabrika — AI-Powered Custom Clothing',
+  ogDescription: 'Create unique clothing designs with AI and get the perfect fit without a fitting room.',
+  ogUrl: siteUrl + '/',
+  ogType: 'website',
+  twitterTitle: 'Fabrika — AI-Powered Custom Clothing',
+  twitterDescription: 'Create unique clothing designs with AI and get the perfect fit without a fitting room.'
+})
+
+useHead({
+  titleTemplate: '',
+  link: [{ rel: 'canonical', href: siteUrl + '/' }],
+  script: [
+    {
+      type: 'application/ld+json',
+      innerHTML: JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'Organization',
+        name: 'Fabrika',
+        url: siteUrl + '/',
+        logo: siteUrl + '/icon-512.png',
+        description: 'AI-powered fashion platform for custom clothing design.'
+      })
+    },
+    {
+      type: 'application/ld+json',
+      innerHTML: JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'WebSite',
+        name: 'Fabrika',
+        url: siteUrl + '/'
+      })
+    }
+  ]
+})
+
 const steps = [
   { title: 'Дизайн', text: 'Создай свой уникальный дизайн' },
   { title: 'Мерки', text: '2 минуты на точные измерения' },

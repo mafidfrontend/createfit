@@ -81,6 +81,7 @@ import { STANDARD_SIZES } from '~/config/catalog'
 import type { CustomMeasurements } from '~/types/order'
 import type { MeasurementResult } from '~/types/design'
 
+useSeoMeta({ robots: 'noindex, nofollow' })
 const order = useOrderStore()
 const error = ref('')
 const showPhotoUpload = ref(false)
