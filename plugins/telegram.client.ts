@@ -1,4 +1,7 @@
 export default defineNuxtPlugin(() => {
-  const { initialize } = useTelegram()
-  onMounted(initialize)
+  const { initialize, authenticate } = useTelegram()
+  onMounted(async () => {
+    initialize()
+    await authenticate()
+  })
 })

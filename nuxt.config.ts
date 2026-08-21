@@ -4,7 +4,7 @@ export default defineNuxtConfig({
   modules: ['@pinia/nuxt'],
   css: ['~/assets/css/main.css'],
   runtimeConfig: {
-    telegramBotToken: '',
+    telegramBotToken: process.env.TELEGRAM_BOT_TOKEN || process.env.NUXT_TELEGRAM_BOT_TOKEN || '',
     telegramAdminChatId: '',
     supabaseServiceRoleKey: '',
     replicateApiToken: '',
@@ -39,6 +39,9 @@ export default defineNuxtConfig({
         { rel: 'icon', type: 'image/png', href: '/favicon-32.png' },
         { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' },
         { rel: 'manifest', href: '/site.webmanifest' }
+      ],
+      script: [
+        { src: 'https://telegram.org/js/telegram-web-app.js', defer: true }
       ]
     }
   }

@@ -32,7 +32,7 @@
 <script setup lang="ts">
 useSeoMeta({ robots: 'noindex, nofollow' })
 const order = useOrderStore()
-const { customer, requestContact, webApp } = useTelegram()
+const { customer, requestContact, webApp, user, authenticate, error: authError } = useTelegram()
 const error = ref('')
 const phoneInput = ref(order.draft.customer.phone.replace(order.draft.customer.countryCode ?? '+998', ''))
 const countryCode = ref(order.draft.customer.countryCode ?? '+998')
@@ -53,8 +53,13 @@ const countries = [
   { code: 'GB', dial: '+44', flag: '🇬🇧' }
 ]
 
-onMounted(() => {
-  order.setCustomer({ telegramId: customer.value.telegramId ?? 0, firstName: customer.value.firstName || 'Гость', lastName: customer.value.lastName, username: customer.value.username, countryCode: countryCode.value })
+onMounted(async () => {
+  if (!user.value) await authenticate()
+  if (user.value) {
+    order.setCustomer({ telegramId: user.value.id, firstName: user.value.firstName || 'Гость', lastName: user.value.lastName, username: user.value.username, countryCode: countryCode.value })
+  } else if (customer.value.telegramId) {
+    order.setCustomer({ telegramId: customer.value.telegramId, firstName: customer.value.firstName || 'Гость', lastName: customer.value.lastName, username: customer.value.username, countryCode: countryCode.value })
+  }
 })
 
 const initials = computed(() => (order.draft.customer.firstName?.[0] ?? 'C').toUpperCase())

@@ -68,22 +68,31 @@ interface OrderRow {
   created_at: string
 }
 
-const { telegramUser } = useTelegram()
+const { webApp, user, authenticate, error: authError, loading: authLoading } = useTelegram()
 const orders = ref<OrderRow[]>([])
 const loading = ref(true)
 const error = ref('')
 
 async function loadOrders(): Promise<void> {
-  const telegramId = telegramUser.value?.id
-  if (!telegramId) {
+  let currentUser = user.value
+  if (!currentUser) {
+    currentUser = await authenticate()
+  }
+  if (!currentUser) {
     loading.value = false
-    error.value = 'Не удалось определить пользователя Telegram. Откройте приложение через Telegram.'
+    error.value = authError.value || 'Откройте приложение через Telegram'
+    return
+  }
+  const initData = webApp.value?.initData
+  if (!initData) {
+    loading.value = false
+    error.value = 'Откройте приложение через Telegram'
     return
   }
   loading.value = true
   error.value = ''
   try {
-    orders.value = await $fetch<OrderRow[]>('/api/orders', { query: { telegram_id: telegramId } })
+    orders.value = await $fetch<OrderRow[]>('/api/orders', { query: { initData } })
   } catch (err: unknown) {
     error.value = err instanceof Error ? err.message : 'Не удалось загрузить заказы'
   } finally {

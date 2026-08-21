@@ -1,37 +1,36 @@
 import { createClient } from '@supabase/supabase-js'
+import { validateInitData } from '~/server/utils/telegram'
 
 interface OrderRow {
   id: string
-  telegram_id: number
-  first_name: string
-  last_name: string
-  username: string | null
-  phone: string
-  product: { id: string; name: string; basePrice: number; description: string }
-  fabric: { id: string; name: string; additionalPrice: number; description: string }
-  design: { type: string; existingDesignId: string | null; existingDesignName: string | null; uploadedImageUrl: string | null; uploadedImageName: string | null; additionalPrice: number }
+  product: { name: string } | null
+  fabric: { name: string } | null
+  design: { type: string; existingDesignName: string | null; uploadedImageUrl: string | null; aiPrompt: string | null; aiFrontImage: string | null; aiBackImage: string | null } | null
   size: string | null
   custom_measurements: Record<string, string> | null
-  payment_method: string
   payment_status: string
-  subtotal: number
-  delivery_price: number
   total_price: number
   city: string
-  address: string
-  comment: string
   manufacturing_days: number
   created_at: string
 }
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
-  const telegramId = Number(query.telegram_id)
-  if (!Number.isInteger(telegramId) || telegramId <= 0) {
-    throw createError({ statusCode: 400, statusMessage: 'Не удалось определить пользователя Telegram' })
-  }
+  const initData = query.initData as string | undefined
 
   const config = useRuntimeConfig()
+  const botToken = config.telegramBotToken || process.env.TELEGRAM_BOT_TOKEN
+
+  let telegramId: number | null = null
+  if (initData && botToken) {
+    const tgUser = validateInitData(initData, botToken)
+    telegramId = tgUser?.id ?? null
+  }
+  if (!telegramId) {
+    throw createError({ statusCode: 401, statusMessage: 'Не удалось определить пользователя Telegram. Откройте приложение через Telegram.' })
+  }
+
   const supabaseUrl = config.public.supabaseUrl || process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL
   const serviceRoleKey = config.supabaseServiceRoleKey || process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!supabaseUrl || !serviceRoleKey) {
