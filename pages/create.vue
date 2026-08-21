@@ -12,12 +12,10 @@
       </div>
       <div class="mt-4">
         <label class="text-sm font-bold">Номер телефона</label>
-        <button v-if="!order.draft.customer.phone && webApp?.requestContact" class="mt-2 w-full rounded-2xl border border-sage bg-mint px-4 py-4 text-left text-sm font-bold text-sage" @click="getPhone">Получить номер через Telegram</button>
-        <div v-else-if="order.draft.customer.phone" class="mt-2 rounded-2xl bg-mint px-4 py-4 text-sm font-bold text-sage">{{ order.draft.customer.phone }}<button class="float-right font-medium underline" @click="editPhone">Изменить</button></div>
-        <input v-else v-model="phoneInput" class="mt-2 w-full rounded-2xl border border-line bg-cream px-4 py-4 text-sm outline-none focus:border-sage" type="tel" placeholder="+998 90 123 45 67" @input="onPhoneInput" />
-        <p v-if="!webApp?.requestContact && !order.draft.customer.phone" class="mt-2 text-xs text-ink/45">Введите номер в международном формате, например +998 90 123 45 67.</p>
+        <input v-model="phoneInput" class="mt-2 w-full rounded-2xl border border-line bg-cream px-4 py-4 text-sm outline-none focus:border-sage" type="tel" placeholder="+998 90 123 45 67" @input="onPhoneInput" />
+        <button v-if="webApp?.requestContact" class="mt-2 w-full rounded-2xl border border-sage bg-mint px-4 py-4 text-left text-sm font-bold text-sage" @click="getPhone">Получить номер через Telegram</button>
         <p v-if="error" class="mt-2 text-sm text-terracotta">{{ error }}</p>
-        <p class="mt-3 text-xs leading-5 text-ink/45">Мы используем номер только для связи по заказу.</p>
+        <p class="mt-3 text-xs leading-5 text-ink/45">Введите номер в международном формате, например +998 90 123 45 67.</p>
       </div>
     </div>
     <BackNext class="mt-8" :disabled="!order.hasContact" next-label="Далее" @next="goNext" />
@@ -31,7 +29,7 @@ useSeoMeta({ robots: 'noindex, nofollow' })
 const order = useOrderStore()
 const { customer, requestContact, webApp, user, authenticate, error: authError } = useTelegram()
 const error = ref('')
-const phoneInput = ref('')
+const phoneInput = ref(order.draft.customer.phone ? formatPhone(order.draft.customer.phone) : '')
 const firstName = ref(order.draft.customer.firstName)
 
 onMounted(async () => {
@@ -71,12 +69,6 @@ function onPhoneInput(): void {
   order.setCustomer({ phone: normalized })
 }
 
-function editPhone(): void {
-  order.setCustomer({ phone: '' })
-  phoneInput.value = ''
-  error.value = ''
-}
-
 async function getPhone(): Promise<void> {
   error.value = ''
   const phone = await requestContact()
@@ -87,9 +79,9 @@ async function getPhone(): Promise<void> {
   const normalized = normalizePhone(phone)
   if (!normalized) {
     error.value = 'Получен некорректный номер телефона. Введите номер вручную.'
-    editPhone()
     return
   }
+  phoneInput.value = formatPhone(normalized)
   order.setCustomer({ phone: normalized })
 }
 
