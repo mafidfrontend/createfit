@@ -24,11 +24,14 @@ export interface AuthenticatedUser {
   photoUrl: string | null
 }
 
-const authUser = useState<AuthenticatedUser | null>('tg-auth-user', () => null)
-const authError = useState<string>('tg-auth-error', () => '')
-const authLoading = useState<boolean>('tg-auth-loading', () => false)
+type AuthState = 'idle' | 'initializing' | 'authenticating' | 'authenticated' | 'failed'
 
 export function useTelegram() {
+  const authUser = useState<AuthenticatedUser | null>('tg-auth-user', () => null)
+  const authError = useState<string>('tg-auth-error', () => '')
+  const authState = useState<AuthState>('tg-auth-state', () => 'idle')
+  const authAttempted = useState<boolean>('tg-auth-attempted', () => false)
+
   const webApp = computed<TelegramWebApp | undefined>(() => import.meta.client ? window.Telegram?.WebApp : undefined)
   const isAvailable = computed(() => Boolean(webApp.value))
   const initData = computed(() => webApp.value?.initData ?? '')
@@ -36,7 +39,7 @@ export function useTelegram() {
   const user = computed(() => authUser.value)
   const isAuthenticated = computed(() => Boolean(authUser.value))
   const error = computed(() => authError.value)
-  const loading = computed(() => authLoading.value)
+  const loading = computed(() => authState.value === 'authenticating')
 
   const customer = computed<Customer>(() => {
     const u = authUser.value ?? telegramUser.value
@@ -59,20 +62,29 @@ export function useTelegram() {
 
   async function authenticate(): Promise<AuthenticatedUser | null> {
     if (!import.meta.client) return null
+
+    if (authState.value === 'authenticated' && authUser.value) return authUser.value
+    if (authAttempted.value) return null
+
+    authAttempted.value = true
+    authState.value = 'initializing'
+
     const wa = window.Telegram?.WebApp
     if (!wa) {
+      authState.value = 'failed'
       authError.value = 'Откройте приложение через Telegram'
       return null
     }
     wa.ready?.()
+    authState.value = 'authenticating'
+
     const data = wa.initData
     if (!data) {
+      authState.value = 'failed'
       authError.value = 'Откройте приложение через Telegram'
       return null
     }
-    if (authUser.value) return authUser.value
 
-    authLoading.value = true
     authError.value = ''
     try {
       const result = await $fetch<AuthenticatedUser>('/api/auth/telegram', {
@@ -80,13 +92,20 @@ export function useTelegram() {
         body: { initData: data }
       })
       authUser.value = result
+      authState.value = 'authenticated'
       return result
     } catch {
+      authState.value = 'failed'
       authError.value = 'Не удалось авторизоваться через Telegram. Попробуйте ещё раз.'
       return null
-    } finally {
-      authLoading.value = false
     }
+  }
+
+  function resetAuth(): void {
+    authAttempted.value = false
+    authState.value = 'idle'
+    authUser.value = null
+    authError.value = ''
   }
 
   function requestContact(): Promise<string | null> {
@@ -98,5 +117,5 @@ export function useTelegram() {
 
   function haptic(): void { webApp.value?.HapticFeedback?.impactOccurred('light') }
 
-  return { webApp, isAvailable, initData, telegramUser, user, isAuthenticated, error, loading, customer, initialize, authenticate, requestContact, haptic }
+  return { webApp, isAvailable, initData, telegramUser, user, isAuthenticated, error, loading, authState, customer, initialize, authenticate, resetAuth, requestContact, haptic }
 }

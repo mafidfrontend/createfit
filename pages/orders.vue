@@ -68,7 +68,7 @@ interface OrderRow {
   created_at: string
 }
 
-const { webApp, user, authenticate, error: authError, loading: authLoading } = useTelegram()
+const { webApp, user, authenticate, error: authError } = useTelegram()
 const orders = ref<OrderRow[]>([])
 const loading = ref(true)
 const error = ref('')
