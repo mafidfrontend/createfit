@@ -10,9 +10,9 @@
       <svg class="h-7 w-7 animate-spin text-sage" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" /><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
     </div>
 
-    <div v-else-if="error" class="rounded-2xl border border-line bg-white p-5 text-center">
-      <p class="text-sm text-terracotta">{{ error }}</p>
-      <button class="mt-4 text-sm font-bold text-sage underline" @click="loadOrders">Повторить</button>
+    <div v-else-if="loadError" class="rounded-2xl border border-line bg-white p-5 text-center">
+      <p class="text-sm text-terracotta">{{ loadError }}</p>
+      <button v-if="canRetry" class="mt-4 text-sm font-bold text-sage underline" @click="loadOrders">Повторить</button>
     </div>
 
     <div v-else-if="orders.length === 0" class="rounded-[22px] border border-line bg-[#FAFBFD] px-6 py-12 text-center">
@@ -68,33 +68,39 @@ interface OrderRow {
   created_at: string
 }
 
-const { webApp, user, authenticate, error: authError } = useTelegram()
+const { authenticate, getInitData, error: authError } = useTelegram()
 const orders = ref<OrderRow[]>([])
 const loading = ref(true)
-const error = ref('')
+const loadError = ref('')
+const canRetry = ref(false)
 
 async function loadOrders(): Promise<void> {
-  let currentUser = user.value
-  if (!currentUser) {
-    currentUser = await authenticate()
-  }
+  loading.value = true
+  loadError.value = ''
+  canRetry.value = false
+
+  const currentUser = await authenticate()
   if (!currentUser) {
     loading.value = false
-    error.value = authError.value || 'Откройте приложение через Telegram'
+    loadError.value = authError.value || 'Откройте приложение через Telegram'
     return
   }
-  const initData = webApp.value?.initData
+
+  const initData = getInitData()
   if (!initData) {
     loading.value = false
-    error.value = 'Откройте приложение через Telegram'
+    loadError.value = 'Откройте приложение через Telegram'
     return
   }
-  loading.value = true
-  error.value = ''
+
+  if (import.meta.dev) console.log('[orders] requesting /api/orders')
   try {
     orders.value = await $fetch<OrderRow[]>('/api/orders', { query: { initData } })
+    if (import.meta.dev) console.log('[orders] loaded', orders.value.length, 'orders')
   } catch (err: unknown) {
-    error.value = err instanceof Error ? err.message : 'Не удалось загрузить заказы'
+    loadError.value = err instanceof Error ? err.message : 'Не удалось загрузить заказы'
+    canRetry.value = true
+    if (import.meta.dev) console.log('[orders] request failed:', loadError.value)
   } finally {
     loading.value = false
   }
