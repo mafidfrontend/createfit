@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
-import { useWizardStore } from '~/stores/wizard'
+import { useOrderStore } from '~/stores/order'
 import { useFormat } from '~/composables/useFormat'
 import { MANUFACTURING_DAYS } from '~/types/wizard'
 
 const router = useRouter()
-const wizard = useWizardStore()
+const wizard = useOrderStore()
 const { formatPrice } = useFormat()
 
 const orderNumber = computed(() => wizard.order.orderNumber ?? '')

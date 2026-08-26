@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
 import { useTelegram } from '~/composables/useTelegram'
-import { useWizardStore } from '~/stores/wizard'
+import { useOrderStore } from '~/stores/order'
 import { WIZARD_STEPS, MANUFACTURING_DAYS } from '~/types/wizard'
 import type { WizardStep } from '~/types/wizard'
 import { PRODUCTS, FABRICS, CATALOG_DESIGNS } from '~/config/wizard'
 import { useFormat } from '~/composables/useFormat'
 
 const router = useRouter()
-const wizard = useWizardStore()
+const wizard = useOrderStore()
 const { haptic, getInitData, getTelegramUser } = useTelegram()
 const { formatPrice } = useFormat()
 
