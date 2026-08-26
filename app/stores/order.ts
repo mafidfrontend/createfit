@@ -141,35 +141,25 @@ export const useOrderStore = defineStore("order", {
 
     async submitOrder(initData: string) {
       try {
-        if (
-          !this.contact ||
-          !this.product ||
-          !this.fabric ||
-          !this.design ||
-          !this.size ||
-          !this.delivery
-        ) {
-          return { success: false, error: "Заполните все поля заказа" };
-        }
-
         const payload = {
           telegramInitData: initData,
           contact: {
-            name: this.contact.name,
-            phone: this.contact.phone,
+            name: this.contact?.name || "Клиент",
+            phone: this.contact?.phone || this.delivery?.phone || "",
           },
-          productId: this.product.id,
-          fabricId: this.fabric.id,
-          designId: this.design.id,
+          // ID larni to'g'ridan-to'g'ri olamiz
+          productId: this.product?.id,
+          fabricId: this.fabric?.id,
+          designId: this.design?.id,
           size:
             typeof this.size === "string"
               ? this.size
-              : this.size.standardSize || "Custom",
+              : this.size?.standardSize || "M",
           delivery: {
-            city: this.delivery.city,
-            address: this.delivery.address,
-            phone: this.delivery.phone,
-            comment: this.delivery.comment || "",
+            city: this.delivery?.city || "",
+            address: this.delivery?.address || "",
+            phone: this.delivery?.phone || this.contact?.phone || "",
+            comment: this.delivery?.comment || "",
           },
         };
 
@@ -184,7 +174,10 @@ export const useOrderStore = defineStore("order", {
         return {
           success: false,
           error:
-            err.data?.message || err.data?.statusMessage || "Xatolik yuz berdi",
+            err.data?.message ||
+            err.data?.statusMessage ||
+            err.message ||
+            "Xatolik yuz berdi",
         };
       }
     },
