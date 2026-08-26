@@ -28,9 +28,21 @@ export interface ApiOrder {
 }
 
 export interface ApiCreateOrderRequest {
-  package_id: number
-  comment?: string
-  payment_method?: string
+  telegramInitData: string
+  contact: {
+    name: string
+    phone: string
+  }
+  productId: string
+  fabricId: string
+  designId: string
+  size: string
+  delivery: {
+    city: string
+    address: string
+    phone: string
+    comment?: string
+  }
 }
 
 export interface ApiCreateOrderResponse {

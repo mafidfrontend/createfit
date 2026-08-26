@@ -144,42 +144,32 @@ export const useOrderStore = defineStore("order", {
         const payload = {
           telegramInitData: initData,
           contact: {
-            name: this.contact?.name || "Клиент",
-            phone: this.contact?.phone || this.delivery?.phone || "",
+            name: this.contact?.name || 'Клиент',
+            phone: this.contact?.phone || this.delivery?.phone || ''
           },
-          // ID larni to'g'ridan-to'g'ri olamiz
-          productId: this.product?.id,
-          fabricId: this.fabric?.id,
-          designId: this.design?.id,
-          size:
-            typeof this.size === "string"
-              ? this.size
-              : this.size?.standardSize || "M",
+          productId: this.product?.id || '',
+          fabricId: this.fabric?.id || '',
+          designId: this.design?.id || '',
+          size: typeof this.size === 'string' ? this.size : (this.size?.standardSize || 'M'),
           delivery: {
-            city: this.delivery?.city || "",
-            address: this.delivery?.address || "",
-            phone: this.delivery?.phone || this.contact?.phone || "",
-            comment: this.delivery?.comment || "",
-          },
-        };
+            city: this.delivery?.city || '',
+            address: this.delivery?.address || '',
+            phone: this.delivery?.phone || this.contact?.phone || '',
+            comment: this.delivery?.comment || ''
+          }
+        }
 
-        const response = await $fetch("/api/order/create", {
-          method: "POST",
-          body: payload,
-        });
+        const { createOrder } = useApi()
+        const response = await createOrder(payload)
 
-        return { success: true, data: response };
+        return { success: true, data: response }
       } catch (err: any) {
-        console.error("Order submission error:", err);
-        return {
-          success: false,
-          error:
-            err.data?.message ||
-            err.data?.statusMessage ||
-            err.message ||
-            "Xatolik yuz berdi",
-        };
+        console.error('Order submission error:', err)
+        return { 
+          success: false, 
+          error: err.message || 'Xatolik yuz berdi' 
+        }
       }
-    },
+    }
   },
 });
