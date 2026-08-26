@@ -12,7 +12,7 @@
 
     <div v-else-if="loadError" class="rounded-2xl border border-line bg-white p-5 text-center">
       <p class="text-sm text-terracotta">{{ loadError }}</p>
-      <button v-if="canRetry" class="mt-4 text-sm font-bold text-sage underline" @click="loadOrders">Повторить</button>
+      <button class="mt-4 text-sm font-bold text-sage underline" @click="loadOrders">Повторить</button>
     </div>
 
     <div v-else-if="orders.length === 0" class="rounded-[22px] border border-line bg-[#FAFBFD] px-6 py-12 text-center">
@@ -26,58 +26,36 @@
       <div v-for="order in orders" :key="order.id" class="rounded-2xl border border-line bg-white p-5">
         <div class="flex items-center justify-between">
           <span class="text-sm font-bold text-sage">Заказ #{{ order.id }}</span>
-          <span class="rounded-full bg-mint px-3 py-1 text-xs font-bold text-sage">{{ statusLabel(order.payment_status) }}</span>
-        </div>
-
-        <div v-if="order.design?.aiFrontImage" class="mt-4 grid grid-cols-2 gap-2">
-          <img :src="order.design.aiFrontImage" alt="Дизайн спереди" class="w-full rounded-xl" />
-          <img v-if="order.design.aiBackImage" :src="order.design.aiBackImage" alt="Дизайн сзади" class="w-full rounded-xl" />
+          <span class="rounded-full bg-mint px-3 py-1 text-xs font-bold text-sage">{{ statusLabel(order.status) }}</span>
         </div>
 
         <div class="mt-4 space-y-2 text-sm">
-          <div class="flex justify-between gap-4"><span class="text-ink/55">Изделие</span><b class="text-right">{{ order.product?.name ?? '—' }}</b></div>
-          <div class="flex justify-between gap-4"><span class="text-ink/55">Размер</span><b class="text-right">{{ sizeLabel(order) }}</b></div>
-          <div class="flex justify-between gap-4"><span class="text-ink/55">Дизайн</span><b class="text-right">{{ designLabel(order) }}</b></div>
-          <div class="flex justify-between gap-4"><span class="text-ink/55">Сумма</span><b class="text-right text-sage">{{ formatUsd(order.total_price) }}</b></div>
-          <div class="flex justify-between gap-4"><span class="text-ink/55">Доставка</span><b class="text-right">{{ order.city }}</b></div>
+          <div class="flex justify-between gap-4"><span class="text-ink/55">Пакет</span><b class="text-right">{{ order.package.emoji ? order.package.emoji + ' ' : '' }}{{ order.package.title }}</b></div>
+          <div class="flex justify-between gap-4"><span class="text-ink/55">Сумма</span><b class="text-right text-sage">{{ order.package.price.toLocaleString('ru-RU') }} сум</b></div>
+          <div v-if="order.payment_method" class="flex justify-between gap-4"><span class="text-ink/55">Оплата</span><b class="text-right">{{ order.payment_method }}</b></div>
+          <div v-if="order.comment" class="flex justify-between gap-4"><span class="text-ink/55">Комментарий</span><b class="text-right">{{ order.comment }}</b></div>
           <div class="flex justify-between gap-4 border-t border-line pt-2"><span class="text-ink/55">Дата</span><b class="text-right">{{ formatDate(order.created_at) }}</b></div>
         </div>
-
-        <div class="mt-4 rounded-xl bg-mint px-4 py-3 text-sm font-bold text-sage">Срок изготовления: {{ order.manufacturing_days }} дней</div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { formatUsd } from '~/utils/pricing'
+import type { ApiOrder } from '~/types/api'
+import { statusLabel } from '~/types/api'
 
 useSeoMeta({ robots: 'noindex, nofollow' })
 
-interface OrderRow {
-  id: string
-  product: { name: string } | null
-  fabric: { name: string } | null
-  design: { type: string; existingDesignName: string | null; uploadedImageUrl: string | null; aiPrompt: string | null; aiFrontImage: string | null; aiBackImage: string | null } | null
-  size: string | null
-  custom_measurements: Record<string, string> | null
-  payment_status: string
-  total_price: number
-  city: string
-  manufacturing_days: number
-  created_at: string
-}
-
-const { authenticate, getInitData, error: authError } = useTelegram()
-const orders = ref<OrderRow[]>([])
+const api = useApi()
+const { authenticate, error: authError } = useTelegram()
+const orders = ref<ApiOrder[]>([])
 const loading = ref(true)
 const loadError = ref('')
-const canRetry = ref(false)
 
 async function loadOrders(): Promise<void> {
   loading.value = true
   loadError.value = ''
-  canRetry.value = false
 
   const currentUser = await authenticate()
   if (!currentUser) {
@@ -86,20 +64,12 @@ async function loadOrders(): Promise<void> {
     return
   }
 
-  const initData = getInitData()
-  if (!initData) {
-    loading.value = false
-    loadError.value = 'Откройте приложение через Telegram'
-    return
-  }
-
-  if (import.meta.dev) console.log('[orders] requesting /api/orders')
+  if (import.meta.dev) console.log('[orders] requesting /api/orders/me')
   try {
-    orders.value = await $fetch<OrderRow[]>('/api/orders', { query: { initData } })
+    orders.value = await api.getMyOrders()
     if (import.meta.dev) console.log('[orders] loaded', orders.value.length, 'orders')
   } catch (err: unknown) {
     loadError.value = err instanceof Error ? err.message : 'Не удалось загрузить заказы'
-    canRetry.value = true
     if (import.meta.dev) console.log('[orders] request failed:', loadError.value)
   } finally {
     loading.value = false
@@ -107,24 +77,6 @@ async function loadOrders(): Promise<void> {
 }
 
 onMounted(loadOrders)
-
-function statusLabel(status: string): string {
-  const map: Record<string, string> = { pending: 'Заказ принят', paid: 'В работе', failed: 'Нужно уточнение', cancelled: 'Отменён' }
-  return map[status] ?? 'Заказ принят'
-}
-
-function sizeLabel(order: OrderRow): string {
-  if (order.size) return order.size
-  if (order.custom_measurements) return 'Индивидуальный'
-  return '—'
-}
-
-function designLabel(order: OrderRow): string {
-  if (!order.design) return '—'
-  if (order.design.type === 'ai') return order.design.aiPrompt ? `AI: ${order.design.aiPrompt.slice(0, 40)}${order.design.aiPrompt.length > 40 ? '...' : ''}` : 'AI дизайн'
-  if (order.design.type === 'uploaded') return 'Свой дизайн'
-  return order.design.existingDesignName ?? '—'
-}
 
 function formatDate(iso: string): string {
   try {

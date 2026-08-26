@@ -12,7 +12,7 @@
         </div>
       </div>
       <!-- T-shirt visual -->
-      <div class="pointer-events-none absolute -bottom-2 -right-[1rem] z-0 h-[380px] w-[230px]">
+      <div class="pointer-events-none absolute -bottom-2 -right-12 z-0 h-[380px] w-[320px]">
         <img :src="'/images/image.png'" alt="Пример готового изделия Fabrika — футболка с AI-дизайном" class="h-full w-full object-contain object-center drop-shadow-[0_18px_28px_rgba(20,93,255,0.16)]" />
       </div>
     </section>

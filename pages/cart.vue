@@ -12,33 +12,69 @@
       <p class="mt-5 text-sm font-bold text-sage">Срок изготовления: 7 дней</p>
     </div>
     <p v-if="error" class="mt-3 text-sm text-terracotta">{{ error }}</p>
-    <BackNext back-to="/measurements" :disabled="!city.trim() || !address.trim()" next-label="Оформить заказ" :loading="loading" @next="submit" />
+    <BackNext back-to="/measurements" :disabled="!city.trim() || !address.trim() || submitting" :loading="submitting" next-label="Оформить заказ" @next="submit" />
   </div>
 </template>
 <script setup lang="ts">
 import { formatUsd } from '~/utils/pricing'
+import type { CreatedOrder } from '~/types/order'
+
 useSeoMeta({ robots: 'noindex, nofollow' })
 const order = useOrderStore()
+const api = useApi()
+const { authenticate, error: authError } = useTelegram()
 const city = ref(order.draft.delivery.city)
 const address = ref(order.draft.delivery.address)
 const comment = ref(order.draft.delivery.comment)
 const error = ref('')
-const loading = ref(false)
+const submitting = ref(false)
 
 watch([city, address, comment], () => order.setDelivery({ city: city.value, address: address.value, comment: comment.value }))
 
 async function submit(): Promise<void> {
+  if (submitting.value) return
   if (!city.value.trim() || !address.value.trim()) { error.value = 'Введите город и адрес доставки'; return }
-  loading.value = true
+
+  submitting.value = true
   error.value = ''
+
+  const currentUser = await authenticate()
+  if (!currentUser) {
+    error.value = authError.value || 'Откройте приложение через Telegram'
+    submitting.value = false
+    return
+  }
+
+  const draft = order.draft
+  const orderComment = [
+    `Город: ${city.value}`,
+    `Адрес: ${address.value}`,
+    comment.value ? `Комментарий: ${comment.value}` : '',
+    `Изделие: ${draft.product?.name ?? ''}`,
+    `Ткань: ${draft.fabric?.name ?? ''}`,
+    draft.design ? `Дизайн: ${draft.design.type === 'ai' ? 'AI' : draft.design.type === 'uploaded' ? 'Загруженный' : draft.design.existingDesignName}` : '',
+    draft.size ? `Размер: ${draft.size.type === 'custom' ? 'Индивидуальный' : draft.size.standardSize}` : '',
+    `Телефон: ${draft.customer.phone}`
+  ].filter(Boolean).join('\n')
+
   try {
-    const created = await $fetch('/api/orders', { method: 'POST', body: order.draft })
+    const result = await api.createOrder({
+      package_id: Number(draft.product?.id) || 0,
+      comment: orderComment,
+      payment_method: draft.paymentMethod ?? 'cash'
+    })
+
+    const created: CreatedOrder = {
+      id: String(result.order.id),
+      createdAt: result.order.created_at,
+      ...draft
+    }
     order.setCreatedOrder(created)
     await navigateTo('/success')
   } catch (requestError: unknown) {
     error.value = requestError instanceof Error ? requestError.message : 'Не удалось оформить заказ. Попробуйте ещё раз.'
   } finally {
-    loading.value = false
+    submitting.value = false
   }
 }
 </script>

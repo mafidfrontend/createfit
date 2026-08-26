@@ -3,6 +3,7 @@ export default defineNuxtConfig({
   devtools: { enabled: false },
   modules: ['@pinia/nuxt'],
   css: ['~/assets/css/main.css'],
+  
   runtimeConfig: {
     telegramBotToken: process.env.TELEGRAM_BOT_TOKEN || process.env.NUXT_TELEGRAM_BOT_TOKEN || '',
     telegramAdminChatId: '',
@@ -13,16 +14,30 @@ export default defineNuxtConfig({
     public: {
       appName: 'Fabrika',
       siteUrl: process.env.NUXT_PUBLIC_SITE_URL || 'https://fabrika.chat',
+      // API manzilni yangi domenimizga moslashtirdik
+      apiBase: process.env.NUXT_PUBLIC_API_BASE || 'https://orders.fabrika.chat',
       supabaseUrl: '',
       supabaseAnonKey: ''
     }
   },
+
   postcss: {
     plugins: {
       tailwindcss: {},
       autoprefixer: {}
     }
   },
+
+  // Xavfsizlik sarlavhalarini Telegram uchun moslash
+  routeRules: {
+    '/**': {
+      headers: {
+        'X-Frame-Options': 'ALLOWALL',
+        'Content-Security-Policy': "frame-ancestors 'self' https://web.telegram.org https://*.telegram.org;"
+      }
+    }
+  },
+
   app: {
     head: {
       htmlAttrs: { lang: 'ru' },
@@ -41,7 +56,8 @@ export default defineNuxtConfig({
         { rel: 'manifest', href: '/site.webmanifest' }
       ],
       script: [
-        { src: 'https://telegram.org/js/telegram-web-app.js', defer: true }
+        // defer: true olib tashlandi, SDK tezroq yuklanishi uchun
+        { src: 'https://telegram.org/js/telegram-web-app.js' }
       ]
     }
   }
