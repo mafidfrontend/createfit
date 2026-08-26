@@ -22,7 +22,8 @@ import type { CreatedOrder } from '~/types/order'
 useSeoMeta({ robots: 'noindex, nofollow' })
 const order = useOrderStore()
 const api = useApi()
-const { authenticate, error: authError } = useTelegram()
+// getInitData funksiyasini ham chaqirib olamiz
+const { authenticate, error: authError, getInitData } = useTelegram() 
 const city = ref(order.draft.delivery.city)
 const address = ref(order.draft.delivery.address)
 const comment = ref(order.draft.delivery.comment)
@@ -46,27 +47,31 @@ async function submit(): Promise<void> {
   }
 
   const draft = order.draft
-  const orderComment = [
-    `Город: ${city.value}`,
-    `Адрес: ${address.value}`,
-    comment.value ? `Комментарий: ${comment.value}` : '',
-    `Изделие: ${draft.product?.name ?? ''}`,
-    `Ткань: ${draft.fabric?.name ?? ''}`,
-    draft.design ? `Дизайн: ${draft.design.type === 'ai' ? 'AI' : draft.design.type === 'uploaded' ? 'Загруженный' : draft.design.existingDesignName}` : '',
-    draft.size ? `Размер: ${draft.size.type === 'custom' ? 'Индивидуальный' : draft.size.standardSize}` : '',
-    `Телефон: ${draft.customer.phone}`
-  ].filter(Boolean).join('\n')
 
   try {
+    // Yangi backend kutayotgan aniq formatda yuboramiz
     const result = await api.createOrder({
-      package_id: Number(draft.product?.id) || 0,
-      comment: orderComment,
-      payment_method: draft.paymentMethod ?? 'cash'
+      telegramInitData: getInitData() || '',
+      contact: {
+        name: draft.customer.firstName || draft.customer.username || 'Клиент',
+        phone: draft.customer.phone || ''
+      },
+      productId: draft.product?.id || '',
+      fabricId: draft.fabric?.id || '',
+      designId: draft.design?.id || '',
+      size: draft.size?.type === 'standard' ? (draft.size.standardSize || 'M') : 'Custom',
+      delivery: {
+        city: city.value,
+        address: address.value,
+        phone: draft.customer.phone || '',
+        comment: comment.value || ''
+      }
     })
 
     const created: CreatedOrder = {
-      id: String(result.order.id),
-      createdAt: result.order.created_at,
+      // Backend qaytargan ID ni olamiz, topilmasa vaqtni beramiz
+      id: String((result as any).data?.id || (result as any).order?.id || Date.now()),
+      createdAt: new Date().toISOString(),
       ...draft
     }
     order.setCreatedOrder(created)
