@@ -15,7 +15,7 @@ export default defineNuxtConfig({
       appName: 'Fabrika',
       siteUrl: process.env.NUXT_PUBLIC_SITE_URL || 'https://fabrika.chat',
       // API manzilni yangi domenimizga moslashtirdik
-      apiBase: process.env.NUXT_PUBLIC_API_BASE || 'https://orders.fabrika.chat',
+      apiBase: process.env.NUXT_PUBLIC_API_BASE || 'https://fabrika.chat',
       supabaseUrl: '',
       supabaseAnonKey: ''
     }
