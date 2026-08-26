@@ -94,7 +94,7 @@ export function useApi() {
 
     createOrder(data: ApiCreateOrderRequest, idempotencyKey?: string): Promise<ApiCreateOrderResponse> {
       const key = idempotencyKey ?? (import.meta.client ? crypto.randomUUID() : '')
-      return request<ApiCreateOrderResponse>('/api/orders', {
+      return request<ApiCreateOrderResponse>('/api/order/create', {
         method: 'POST',
         body: data,
         idempotencyKey: key
