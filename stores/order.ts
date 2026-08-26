@@ -210,38 +210,35 @@ export const useOrderStore = defineStore("createfit-order", {
         const payload = {
           telegramInitData: initData,
           contact: {
-            name: this.draft.customer.firstName,
-            phone: this.draft.customer.phone,
+            name: this.contact?.name || 'Клиент',
+            phone: this.contact?.phone || this.delivery?.phone || ''
           },
-          productId: this.draft.product?.id,
-          fabricId: this.draft.fabric?.id,
-          designId: this.draft.design?.id,
-          size:
-            this.draft.size?.type === "standard"
-              ? this.draft.size.standardSize
-              : "Custom",
+          // ID larni to'g'ridan-to'g'ri olamiz
+          productId: this.product?.id,
+          fabricId: this.fabric?.id,
+          designId: this.design?.id,
+          size: typeof this.size === 'string' ? this.size : (this.size?.standardSize || 'M'),
           delivery: {
-            city: this.draft.delivery.city,
-            address: this.draft.delivery.address,
-            phone: this.draft.customer.phone,
-            comment: this.draft.delivery.comment || "",
-          },
-        };
+            city: this.delivery?.city || '',
+            address: this.delivery?.address || '',
+            phone: this.delivery?.phone || this.contact?.phone || '',
+            comment: this.delivery?.comment || ''
+          }
+        }
 
-        const response = await $fetch("/api/order/create", {
-          method: "POST",
-          body: payload,
-        });
+        const response = await $fetch('/api/order/create', {
+          method: 'POST',
+          body: payload
+        })
 
-        return { success: true, data: response };
+        return { success: true, data: response }
       } catch (err: any) {
-        console.error("Order submission error:", err);
-        return {
-          success: false,
-          error:
-            err.data?.message || err.data?.statusMessage || "Xatolik yuz berdi",
-        };
+        console.error('Order submission error:', err)
+        return { 
+          success: false, 
+          error: err.data?.message || err.data?.statusMessage || err.message || 'Xatolik yuz berdi' 
+        }
       }
-    },
+    }
   },
 });
