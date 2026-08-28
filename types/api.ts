@@ -1,30 +1,26 @@
-export interface ApiPackage {
-  id: number
-  title: string
-  type: string
-  emoji?: string
-  price: number
-  description?: string
-}
-
-export interface ApiOrderPackage {
-  id: number
-  title: string
-  type: string
-  emoji?: string
-  price: number
-}
-
-export type OrderStatus = 'pending' | 'processing' | 'paid' | 'completed' | 'cancelled' | 'rejected'
+export type OrderStatus = 'awaiting_payment' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled'
+export type PaymentStatus = 'pending' | 'awaiting_payment' | 'paid' | 'failed' | 'cancelled'
 
 export interface ApiOrder {
-  id: number
-  status: OrderStatus
-  package: ApiOrderPackage
-  comment?: string
-  payment_method?: string
+  id: string
+  order_number: string
+  product: { name: string } | null
+  fabric: { name: string } | null
+  design: { 
+    type: string
+    existingDesignName: string | null
+    uploadedImageUrl: string | null
+    aiPrompt: string | null
+    aiFrontImage: string | null
+    aiBackImage: string | null
+  } | null
+  size: string | null
+  custom_measurements: Record<string, string> | null
+  payment_status: PaymentStatus
+  total_price: number
+  city: string
+  manufacturing_days: number
   created_at: string
-  updated_at?: string
 }
 
 export interface ApiCreateOrderRequest {
@@ -47,7 +43,13 @@ export interface ApiCreateOrderRequest {
 
 export interface ApiCreateOrderResponse {
   success: boolean
-  order: ApiOrder
+  orderId?: string
+  orderNumber?: string
+  totalPrice?: number
+  paymentStatus?: PaymentStatus
+  orderStatus?: OrderStatus
+  createdAt?: string
+  error?: string
 }
 
 export interface ApiHealthResponse {
@@ -62,12 +64,13 @@ export interface ApiError {
 }
 
 export const ORDER_STATUS_LABELS: Record<string, string> = {
-  pending: 'Заказ принят',
-  processing: 'В работе',
-  paid: 'Оплачен',
-  completed: 'Завершён',
+  awaiting_payment: 'Ожидает оплаты',
+  confirmed: 'В обработке',
+  shipped: 'Отправлен',
+  delivered: 'Доставлен',
   cancelled: 'Отменён',
-  rejected: 'Отклонён'
+  pending: 'В ожидании',
+  paid: 'Оплачен'
 }
 
 export function statusLabel(status: string): string {
