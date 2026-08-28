@@ -24,10 +24,10 @@
 
     <!-- Upload design -->
     <div v-else-if="activeTab === 'upload'">
-      <label class="mt-4 block cursor-pointer rounded-2xl border border-dashed border-sage bg-mint p-4">
-        <span class="text-sm font-bold text-sage">Загрузить свой дизайн</span>
+      <label class="mt-4 block cursor-pointer rounded-2xl border border-dashed border-sage bg-mint p-4 transition" :class="{ 'opacity-60 pointer-events-none': uploadingLogo }">
+        <span class="text-sm font-bold text-sage">{{ uploadingLogo ? 'Загрузка...' : 'Загрузить свой дизайн' }}</span>
         <span class="mt-1 block text-xs text-ink/50">JPG, PNG, WEBP до 5 МБ</span>
-        <input class="hidden" type="file" accept="image/jpeg,image/png,image/webp" @change="handleLogoUpload">
+        <input class="hidden" type="file" accept="image/jpeg,image/png,image/webp" :disabled="uploadingLogo" @change="handleLogoUpload">
       </label>
       <div v-if="logoPreview" class="relative mt-3 overflow-hidden rounded-2xl bg-white">
         <img :src="logoPreview" alt="Предпросмотр дизайна" class="max-h-48 w-full object-contain" />
@@ -39,7 +39,11 @@
     <div v-else class="mt-4 space-y-4">
       <!-- Style -->
       <div>
-        <label class="text-sm font-bold">Стиль</label>
+        <label class="mt-2 block cursor-pointer rounded-2xl border border-dashed border-line bg-white p-4 transition hover:border-sage" :class="{ 'opacity-60 pointer-events-none': uploadingLogo }">
+          <span class="text-sm font-bold text-ink/70">{{ uploadingLogo ? 'Загрузка...' : 'Загрузить логотип или графику' }}</span>
+          <span class="mt-1 block text-xs text-ink/45">PNG, JPG, WEBP — будет включён в генерацию</span>
+          <input class="hidden" type="file" accept="image/jpeg,image/png,image/webp" :disabled="uploadingLogo" @change="handleLogoUpload">
+        </label>
         <div class="mt-2 grid grid-cols-3 gap-2">
           <button v-for="style in DESIGN_STYLES" :key="style.id" class="rounded-xl border bg-white p-3 text-left transition" :class="aiStyle === style.id ? 'border-sage bg-mint' : 'border-line'" @click="aiStyle = style.id">
             <span class="text-xs font-bold">{{ style.name }}</span>
@@ -115,6 +119,8 @@ import { DESIGN_STYLES, SHIRT_COLORS } from '~/types/design'
 import type { Design } from '~/types/order'
 import type { DesignStyle, ShirtColor, GenerateDesignResponse } from '~/types/design'
 
+const uploadingLogo = ref(false)
+
 useSeoMeta({ robots: 'noindex, nofollow' })
 const order = useOrderStore()
 const error = ref('')
@@ -159,14 +165,36 @@ async function handleLogoUpload(event: Event): Promise<void> {
   if (file.size > 5 * 1024 * 1024) { error.value = 'Файл слишком большой. Максимальный размер — 5 МБ.'; return }
 
   error.value = ''
+  uploadingLogo.value = true // Yuklanish boshlandi
+
   const reader = new FileReader()
   reader.onload = async () => {
     const base64 = reader.result as string
-    logoPreview.value = base64
-    logoUrl.value = base64
-    logoName.value = file.name
-    if (activeTab.value === 'upload') {
-      order.setDesign({ type: 'uploaded', existingDesignId: null, existingDesignName: null, uploadedImageUrl: base64, uploadedImageName: file.name, additionalPrice: 0, aiPrompt: null, aiStyle: null, aiColor: null, aiFrontImage: null, aiBackImage: null })
+    logoPreview.value = base64 // Tezkor ko'rsatish uchun avvaliga Base64 ishlatamiz
+
+    try {
+      // Yangi API orqali rasmni Supabase'ga jo'natamiz
+      const response = await $fetch<{ url: string }>('/api/upload', {
+        method: 'POST',
+        body: {
+          fileName: file.name,
+          fileType: file.type,
+          base64Data: base64
+        }
+      })
+
+      // Backend'dan kelgan toza URL manzilini saqlaymiz!
+      logoUrl.value = response.url
+      logoName.value = file.name
+
+      if (activeTab.value === 'upload') {
+        order.setDesign({ type: 'uploaded', existingDesignId: null, existingDesignName: null, uploadedImageUrl: response.url, uploadedImageName: file.name, additionalPrice: 0, aiPrompt: null, aiStyle: null, aiColor: null, aiFrontImage: null, aiBackImage: null })
+      }
+    } catch (err) {
+      error.value = 'Ошибка при загрузке файла. Попробуйте еще раз.'
+      logoPreview.value = ''
+    } finally {
+      uploadingLogo.value = false // Yuklanish tugadi
     }
   }
   reader.readAsDataURL(file)
