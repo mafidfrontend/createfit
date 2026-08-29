@@ -60,5 +60,13 @@ export default defineNuxtConfig({
         { src: 'https://telegram.org/js/telegram-web-app.js' }
       ]
     }
+  },
+
+  nitro: {
+    vercel: {
+      functions: {
+        maxDuration: 60
+      }
+    }
   }
 })
