@@ -11,7 +11,7 @@ export default defineEventHandler(async (event) => {
 
     const apiKey = process.env.GEMINI_API_KEY
     if (!apiKey) {
-      throw createError({ statusCode: 500, message: "Gemini API key topilmadi" })
+      throw createError({ statusCode: 500, message: 'Gemini API key topilmadi' })
     }
 
     // 1. Rasmni fetch qilib, Buffer ga o'tkazamiz
@@ -72,7 +72,7 @@ export default defineEventHandler(async (event) => {
     console.error("Gemini Dimensions Extraction Error:", error)
     throw createError({ 
       statusCode: error.statusCode || 500, 
-      message: error.message || "O'lchamlarni aniqlashda xatolik yuz berdi" 
+      message: "AI o'lchamlarni aniqlay olmadi. Iltimos, qayta urinib ko'ring." 
     })
   }
 })
