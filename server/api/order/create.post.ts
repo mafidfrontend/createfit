@@ -1,4 +1,5 @@
 import { createOrder, type CreateOrderInput } from '../../services/orders'
+import { sendOrderToTelegramGroup } from '~/server/utils/telegram'
 
 interface OrderRequestBody {
   telegramInitData: string
@@ -44,6 +45,29 @@ export default defineEventHandler(async (event) => {
     setResponseStatus(event, 400)
     return { success: false, error: result.error }
   }
+
+  // --- TELEGRAMGA XABAR YUBORISH QISMI ---
+  // Bizga API'dan faqat ID'lar kelayotgani uchun, ma'lumotlarni moslashtiramiz
+  const telegramOrderData = {
+    order_number: result.orderNumber,
+    total_price: result.totalPrice,
+    size: body.size,
+    product: { name: body.productId },
+    fabric: { name: body.fabricId },
+    design: { type: 'existing', existingDesignName: body.designId }
+  }
+
+  // Guruhga jo'natamiz (try-catch ichiga olamiz, toki xato chiqsa ham buyurtma bekor bo'lmasin)
+  try {
+    await sendOrderToTelegramGroup(telegramOrderData, {
+      name: body.contact.name,
+      phone: body.contact.phone,
+      address: `${body.delivery.city}, ${body.delivery.address}`
+    })
+  } catch (tgError) {
+    console.error('Telegramga yuborishda muammo:', tgError)
+  }
+  // ---------------------------------------
 
   setResponseStatus(event, 201)
   return {
