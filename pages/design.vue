@@ -22,28 +22,56 @@
       </button>
     </div>
 
-    <!-- Upload design -->
+    <!-- Upload design & Gemini Dimension Extraction -->
     <div v-else-if="activeTab === 'upload'">
       <label class="mt-4 block cursor-pointer rounded-2xl border border-dashed border-sage bg-mint p-4 transition" :class="{ 'opacity-60 pointer-events-none': uploadingLogo }">
-        <span class="text-sm font-bold text-sage">{{ uploadingLogo ? 'Загрузка...' : 'Загрузить свой дизайн' }}</span>
+        <span class="text-sm font-bold text-sage">{{ uploadingLogo ? 'Загрузка...' : 'Загрузить фото одежды' }}</span>
         <span class="mt-1 block text-xs text-ink/50">JPG, PNG, WEBP до 5 МБ</span>
         <input class="hidden" type="file" accept="image/jpeg,image/png,image/webp" :disabled="uploadingLogo" @change="handleLogoUpload">
       </label>
-      <div v-if="logoPreview" class="relative mt-3 overflow-hidden rounded-2xl bg-white">
-        <img :src="logoPreview" alt="Предпросмотр дизайна" class="max-h-48 w-full object-contain" />
-        <button class="absolute right-2 top-2 rounded-full bg-ink px-3 py-1 text-xs font-bold text-white" @click="removeLogo">Удалить</button>
+      
+      <div v-if="logoPreview" class="relative mt-3 overflow-hidden rounded-2xl bg-white border border-line">
+        <img :src="logoPreview" alt="Предпросмотр дизайна" class="max-h-48 w-full object-contain bg-cream" />
+        <button class="absolute right-2 top-2 rounded-full bg-ink/70 px-3 py-1 text-xs font-bold text-white backdrop-blur transition hover:bg-terracotta" @click="removeLogo">Удалить</button>
       </div>
+
+      <!-- YANNGI: Gemini AI Sizes Results -->
+      <div v-if="extractingDimensions" class="mt-4 flex items-center justify-center gap-2 rounded-2xl border border-line bg-white p-4 text-sm font-bold text-sage">
+        <svg class="h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" /><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+        AI распознает размеры...
+      </div>
+      
+      <div v-else-if="extractedDimensions" class="mt-4 rounded-2xl border border-sage bg-mint p-4">
+        <p class="mb-3 text-sm font-bold text-sage">AI определил размеры изделия:</p>
+        <div class="space-y-2 text-sm">
+          <div class="flex justify-between border-b border-sage/10 pb-1.5"><span class="text-ink/60">Ширина (Грудь):</span> <b class="text-right">{{ extractedDimensions.chest_cm }} см</b></div>
+          <div class="flex justify-between border-b border-sage/10 pb-1.5"><span class="text-ink/60">Длина:</span> <b class="text-right">{{ extractedDimensions.length_cm }} см</b></div>
+          <div class="flex justify-between border-b border-sage/10 pb-1.5"><span class="text-ink/60">Плечи:</span> <b class="text-right">{{ extractedDimensions.shoulder_cm }} см</b></div>
+          <div class="flex justify-between pt-0.5"><span class="text-ink/60">Длина рукава:</span> <b class="text-right">{{ extractedDimensions.sleeve_cm }} см</b></div>
+        </div>
+      </div>
+      <p v-if="extractError" class="mt-2 text-xs font-medium text-terracotta">{{ extractError }}</p>
     </div>
 
     <!-- AI design creation -->
     <div v-else class="mt-4 space-y-4">
-      <!-- Style -->
+      <!-- Logo upload for AI -->
       <div>
+        <label class="text-sm font-bold">Логотип или графика <span class="font-normal text-ink/45">(необязательно)</span></label>
         <label class="mt-2 block cursor-pointer rounded-2xl border border-dashed border-line bg-white p-4 transition hover:border-sage" :class="{ 'opacity-60 pointer-events-none': uploadingLogo }">
           <span class="text-sm font-bold text-ink/70">{{ uploadingLogo ? 'Загрузка...' : 'Загрузить логотип или графику' }}</span>
           <span class="mt-1 block text-xs text-ink/45">PNG, JPG, WEBP — будет включён в генерацию</span>
           <input class="hidden" type="file" accept="image/jpeg,image/png,image/webp" :disabled="uploadingLogo" @change="handleLogoUpload">
         </label>
+        <div v-if="logoPreview" class="relative mt-3 overflow-hidden rounded-2xl bg-white border border-line">
+          <img :src="logoPreview" alt="Предпросмотр логотипа" class="max-h-40 w-full object-contain" />
+          <button class="absolute right-2 top-2 rounded-full bg-ink/70 px-3 py-1 text-xs font-bold text-white backdrop-blur transition hover:bg-terracotta" @click="removeLogo">Удалить</button>
+        </div>
+      </div>
+
+      <!-- Style -->
+      <div>
+        <label class="text-sm font-bold">Стиль</label>
         <div class="mt-2 grid grid-cols-3 gap-2">
           <button v-for="style in DESIGN_STYLES" :key="style.id" class="rounded-xl border bg-white p-3 text-left transition" :class="aiStyle === style.id ? 'border-sage bg-mint' : 'border-line'" @click="aiStyle = style.id">
             <span class="text-xs font-bold">{{ style.name }}</span>
@@ -67,20 +95,6 @@
       <div>
         <label class="text-sm font-bold">Описание дизайна</label>
         <textarea v-model="aiPrompt" class="mt-2 min-h-20 w-full resize-none rounded-2xl border border-line bg-cream px-4 py-3 text-sm outline-none focus:border-sage" placeholder="Опиши, какой дизайн хочешь увидеть на изделии — например, минималистичный логотип с горами на груди"></textarea>
-      </div>
-
-      <!-- Logo upload for AI -->
-      <div>
-        <label class="text-sm font-bold">Логотип или графика <span class="font-normal text-ink/45">(необязательно)</span></label>
-        <label class="mt-2 block cursor-pointer rounded-2xl border border-dashed border-line bg-white p-4 transition hover:border-sage">
-          <span class="text-sm font-bold text-ink/70">Загрузить логотип или графику</span>
-          <span class="mt-1 block text-xs text-ink/45">PNG, JPG, WEBP — будет включён в генерацию</span>
-          <input class="hidden" type="file" accept="image/jpeg,image/png,image/webp" @change="handleLogoUpload">
-        </label>
-        <div v-if="logoPreview" class="relative mt-3 overflow-hidden rounded-2xl bg-white">
-          <img :src="logoPreview" alt="Предпросмотр логотипа" class="max-h-40 w-full object-contain" />
-          <button class="absolute right-2 top-2 rounded-full bg-ink px-3 py-1 text-xs font-bold text-white" @click="removeLogo">Удалить</button>
-        </div>
       </div>
 
       <!-- Generate button -->
@@ -119,15 +133,44 @@ import { DESIGN_STYLES, SHIRT_COLORS } from '~/types/design'
 import type { Design } from '~/types/order'
 import type { DesignStyle, ShirtColor, GenerateDesignResponse } from '~/types/design'
 
-const uploadingLogo = ref(false)
-
 useSeoMeta({ robots: 'noindex, nofollow' })
 const order = useOrderStore()
 const error = ref('')
 const activeTab = ref<'existing' | 'upload' | 'ai'>('existing')
 const selectedExisting = computed(() => order.draft.design?.existingDesignId ?? '')
 
+// --- Gemini orqali o'lchamlarni olish state'lari ---
+const extractedDimensions = ref<{ chest_cm?: number; length_cm?: number; shoulder_cm?: number; sleeve_cm?: number } | null>(null)
+const extractingDimensions = ref(false)
+const extractError = ref('')
+
+// --- Gemini'ga rasmni yuborib, o'lchamlarni oluvchi funksiya ---
+async function extractDimensionsFromImage(imageUrl: string) {
+  extractingDimensions.value = true
+  extractError.value = ''
+  extractedDimensions.value = null
+
+  try {
+    const response = await $fetch<{ success: boolean, dimensions: any }>('/api/design/extract-dimensions', {
+      method: 'POST',
+      body: {
+        imageUrl: imageUrl,
+        productType: order.draft.product?.name || 'Kiyim'
+      }
+    })
+    
+    if (response.success && response.dimensions) {
+      extractedDimensions.value = response.dimensions
+    }
+  } catch (err: any) {
+    extractError.value = err.message || "О'lchamlarni aniqlashda xatolik yuz berdi."
+  } finally {
+    extractingDimensions.value = false
+  }
+}
+
 // Upload state
+const uploadingLogo = ref(false)
 const logoPreview = ref(order.draft.design?.uploadedImageUrl ?? '')
 const logoUrl = ref<string | null>(order.draft.design?.uploadedImageUrl ?? null)
 const logoName = ref(order.draft.design?.uploadedImageName ?? null)
@@ -155,6 +198,7 @@ function selectExisting(design: { id: string; name: string }): void {
   logoName.value = null
   generatedFront.value = null
   generatedBack.value = null
+  extractedDimensions.value = null
   order.setDesign({ type: 'existing', existingDesignId: design.id, existingDesignName: design.name, uploadedImageUrl: null, uploadedImageName: null, additionalPrice: 0, aiPrompt: null, aiStyle: null, aiColor: null, aiFrontImage: null, aiBackImage: null })
 }
 
@@ -165,15 +209,14 @@ async function handleLogoUpload(event: Event): Promise<void> {
   if (file.size > 5 * 1024 * 1024) { error.value = 'Файл слишком большой. Максимальный размер — 5 МБ.'; return }
 
   error.value = ''
-  uploadingLogo.value = true // Yuklanish boshlandi
+  uploadingLogo.value = true
 
   const reader = new FileReader()
   reader.onload = async () => {
     const base64 = reader.result as string
-    logoPreview.value = base64 // Tezkor ko'rsatish uchun avvaliga Base64 ishlatamiz
+    logoPreview.value = base64
 
     try {
-      // Yangi API orqali rasmni Supabase'ga jo'natamiz
       const response = await $fetch<{ url: string }>('/api/upload', {
         method: 'POST',
         body: {
@@ -183,18 +226,22 @@ async function handleLogoUpload(event: Event): Promise<void> {
         }
       })
 
-      // Backend'dan kelgan toza URL manzilini saqlaymiz!
       logoUrl.value = response.url
       logoName.value = file.name
 
+      // YANNGI: Rasm yuklanib bo'lishi bilan o'lchamlarni hisoblashni boshlaymiz
       if (activeTab.value === 'upload') {
+        await extractDimensionsFromImage(response.url)
+      }
+
+      if (activeTab.value === 'upload' || activeTab.value === 'ai') {
         order.setDesign({ type: 'uploaded', existingDesignId: null, existingDesignName: null, uploadedImageUrl: response.url, uploadedImageName: file.name, additionalPrice: 0, aiPrompt: null, aiStyle: null, aiColor: null, aiFrontImage: null, aiBackImage: null })
       }
     } catch (err) {
       error.value = 'Ошибка при загрузке файла. Попробуйте еще раз.'
       logoPreview.value = ''
     } finally {
-      uploadingLogo.value = false // Yuklanish tugadi
+      uploadingLogo.value = false
     }
   }
   reader.readAsDataURL(file)
@@ -204,6 +251,8 @@ function removeLogo(): void {
   logoPreview.value = ''
   logoUrl.value = null
   logoName.value = null
+  extractedDimensions.value = null
+  extractError.value = ''
   if (activeTab.value === 'upload') {
     order.setDesign({ type: 'existing', existingDesignId: null, existingDesignName: null, uploadedImageUrl: null, uploadedImageName: null, additionalPrice: 0, aiPrompt: null, aiStyle: null, aiColor: null, aiFrontImage: null, aiBackImage: null })
   }

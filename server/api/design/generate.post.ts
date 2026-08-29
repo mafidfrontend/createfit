@@ -77,7 +77,6 @@ export default defineEventHandler(async (event) => {
 
     return {
       frontImage: generatedImageUrl,
-      backImage: generatedImageUrl
     }
 
   } catch (error: any) {
