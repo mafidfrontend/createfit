@@ -10,7 +10,8 @@ export async function analyzePhoto(imageBase64: string, mimeType: string): Promi
   const instruction = `Analyze this full-body clothing photo and estimate body proportions only when the image is sufficient. Return only valid JSON with this structure: {"measurements":{"height":"","chest":"","waist":"","hips":"","shoulder":"","sleeve":""},"recommendedSize":"XS|S|M|L|XL|XXL|XXXL","confidence":0,"notes":""}. Confidence must be a whole number from 0 to 100. All measurements are estimates, never exact. If the photo is unclear, use empty measurement values, low confidence, and explain that a better full-body photo or manual measurements are needed.`
   let response: GeminiResponse
   try {
-    response = await $fetch<GeminiResponse>('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent', {
+    // AYNAN SHU QATOR O'ZGARTIRILDI: -latest qo'shildi
+    response = await $fetch<GeminiResponse>('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent', {
       method: 'POST',
       query: { key: apiKey },
       headers: { 'Content-Type': 'application/json' },
