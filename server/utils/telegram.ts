@@ -44,3 +44,69 @@ export function validateInitData(initData: string, botToken: string): TelegramUs
     return null
   }
 }
+
+// --- YANNGI QO'SHILGAN QISM: Buyurtmani guruhga yuborish ---
+export async function sendOrderToTelegramGroup(orderData: any, customerData: { name: string, phone: string, address: string }) {
+  const config = useRuntimeConfig()
+  const botToken = process.env.TELEGRAM_BOT_TOKEN || config.telegramBotToken
+  const chatId = process.env.TELEGRAM_CHAT_ID || config.telegramChatId
+
+  if (!botToken || !chatId) {
+    console.error('Telegram Bot Token yoki Chat ID sozlanmagan')
+    return
+  }
+
+  const orderNumber = orderData.order_number || 'Yangi'
+  const product = orderData.product?.name || 'Kiyim'
+  const fabric = orderData.fabric?.name || 'Standart'
+  const size = orderData.size?.standardSize || orderData.size || 'Maxsus'
+  const price = orderData.total_price ? `${orderData.total_price} $` : 'Kelishilgan'
+  
+  let designInfo = 'Standart'
+  if (orderData.design?.type === 'existing') designInfo = `Tayyor dizayn: ${orderData.design.existingDesignName}`
+  else if (orderData.design?.type === 'ai') designInfo = `AI: ${orderData.design.aiPrompt}`
+  else if (orderData.design?.type === 'uploaded') designInfo = 'Mijoz rasmi yuklangan'
+
+  const messageText = `
+🛍 <b>YANGI BUYURTMA #${orderNumber}</b>
+
+👤 <b>Ismi:</b> ${customerData.name}
+📞 <b>Telefon raqami:</b> ${customerData.phone}
+📍 <b>Manzil:</b> ${customerData.address}
+
+📦 <b>Buyurtma ma'lumoti:</b>
+• <b>Kiyim:</b> ${product}
+• <b>Mato:</b> ${fabric}
+• <b>O'lcham:</b> ${size}
+• <b>Dizayn:</b> ${designInfo}
+💵 <b>Jami summa:</b> ${price}
+`
+
+  try {
+    // 1. Matnli xabarni yuborish
+    await $fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      method: 'POST',
+      body: {
+        chat_id: chatId,
+        text: messageText,
+        parse_mode: 'HTML'
+      }
+    })
+
+    // 2. Agar dizayn rasmi mavjud bo'lsa, uni ham yuborish
+    const imageUrl = orderData.design?.aiFrontImage || orderData.design?.uploadedImageUrl
+    if (imageUrl) {
+      await $fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
+        method: 'POST',
+        body: {
+          chat_id: chatId,
+          photo: imageUrl,
+          caption: `🖼 <b>#${orderNumber}</b> dizayn rasmi`,
+          parse_mode: 'HTML'
+        }
+      })
+    }
+  } catch (error) {
+    console.error('Telegramga xabar yuborishda xato yuz berdi:', error)
+  }
+}
