@@ -73,7 +73,7 @@ export default defineEventHandler(async (event) => {
         }
 
         parts.unshift({ text: geminiInstruction })
-        const geminiRes = await $fetch<any>(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${geminiApiKey}`, {
+        const geminiRes = await $fetch<any>(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`, {
           method: 'POST',
           body: { contents: [{ parts: parts }], generationConfig: { temperature: 0.3 } }
         })
