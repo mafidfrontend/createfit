@@ -6,7 +6,21 @@
 
 <script setup lang="ts">
 const config = useRuntimeConfig()
-const siteUrl = config.public.siteUrl as string
+const route = useRoute()
+const siteUrl = config.public.siteUrl || 'https://fabrika.chat'
+
+const canonicalUrl = computed(() => {
+  return `${siteUrl}${route.path}`.replace(/\/$/, '')
+})
+
+useHead({
+  link: [
+    {
+      rel: 'canonical',
+      href: canonicalUrl
+    }
+  ]
+})
 
 useHead({
   link: [
