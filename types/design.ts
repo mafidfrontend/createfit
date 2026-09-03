@@ -19,7 +19,7 @@ export interface GenerateDesignRequest {
   productType: string
   productName: string
   fabric: string
-  color: ShirtColor
+  color?: ShirtColor | null // <-- Rang endi ixtiyoriy
   style: DesignStyle
   prompt: string
   logoImageBase64?: string | null
@@ -29,8 +29,8 @@ export interface GenerateDesignRequest {
 
 export interface GenerateDesignResponse {
   frontImage: string
-  backImage: string
-  originalPrompt: string
+  backImage?: string | null // <-- Orqa rasm endi ixtiyoriy
+  originalPrompt?: string
 }
 
 export const DESIGN_STYLES: { id: DesignStyle; name: string; description: string }[] = [

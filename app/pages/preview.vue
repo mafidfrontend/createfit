@@ -1,20 +1,16 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 import { useRouter } from 'vue-router'
-import AppHeader from '~/components/AppHeader.vue'
-import AppButton from '~/components/AppButton.vue'
-import PreviewToggle from '~/components/preview/PreviewToggle.vue'
-import PreviewImage from '~/components/preview/PreviewImage.vue'
-import PreviewSummary from '~/components/preview/PreviewSummary.vue'
-import PreviewChat from '~/components/preview/PreviewChat.vue'
-import { useDesign } from '~/composables/useDesign'
+import AppHeader from '../components/AppHeader.vue'
+import AppButton from '../components/AppButton.vue'
+import PreviewImage from '../components/preview/PreviewImage.vue'
+import PreviewSummary from '../components/preview/PreviewSummary.vue'
+import PreviewChat from '../components/preview/PreviewChat.vue'
+import { useDesign } from '../composables/useDesign'
 
 const router = useRouter()
 const designStore = useDesignStore()
 const { generateDesign, isLoading } = useDesign()
-
-type Side = 'front' | 'back'
-const activeSide = ref<Side>('front')
 
 const hasDesign = computed(() => designStore.current !== null)
 
@@ -37,12 +33,15 @@ async function regenerate() {
     prompt: designStore.current.prompt,
     style: designStore.style,
     shirtColor: designStore.shirtColor,
+    // Agar logo bo'lsa, bu yerda qo'shib yuborish kerak:
+    // uploadedImageUrl: designStore.current.uploadedImageUrl 
   })
 
   designStore.setRegenerating(false)
 
   if (result) {
-    designStore.setGeneratedImages(result.frontImage, result.backImage)
+    // Endi orqa rasm yo'q, faqat bitta umumiy (frontImage) rasmni saqlaymiz
+    designStore.setGeneratedImages(result.frontImage, null)
   } else {
     designStore.setGenerateError('Не удалось пересоздать дизайн. Попробуйте ещё раз.')
   }
@@ -59,13 +58,13 @@ function continueToNext() {
     <AppHeader title="Предварительный результат" show-back show-menu @back="goBack" />
 
     <main class="flex-1 overflow-y-auto px-5 pt-4 pb-28">
-      <div class="mb-4">
-        <PreviewToggle v-model="activeSide" />
-      </div>
+      
+      <!-- PreviewToggle olib tashlandi, chunki rasmimiz bitta (yonma-yon) -->
+      
       <PreviewImage
-        :side="activeSide"
+        side="front"
         :front-image="designStore.current.frontImage"
-        :back-image="designStore.current.backImage"
+        :back-image="null"
         :is-generating="designStore.isRegenerating"
       />
 

@@ -82,9 +82,13 @@
 
       <!-- Color -->
       <div>
-        <label class="text-sm font-bold">Цвет изделия</label>
+        <label class="text-sm font-bold">Цвет изделия <span class="font-normal text-ink/45">(необязательно)</span></label>
         <div class="mt-2 flex flex-wrap gap-2">
-          <button v-for="color in SHIRT_COLORS" :key="color.id" class="flex items-center gap-2 rounded-xl border px-3 py-2.5 transition" :class="aiColor === color.id ? 'border-sage ring-2 ring-sage/10' : 'border-line'" @click="aiColor = color.id">
+          <!-- @click qismida rangni olib tashlash imkoniyatini qo'shdik -->
+          <button v-for="color in SHIRT_COLORS" :key="color.id" 
+            class="flex items-center gap-2 rounded-xl border px-3 py-2.5 transition" 
+            :class="aiColor === color.id ? 'border-sage ring-2 ring-sage/10 bg-mint' : 'border-line'" 
+            @click="aiColor = aiColor === color.id ? null : color.id">
             <span class="h-5 w-5 rounded-full border border-line" :style="{ background: color.hex }" />
             <span class="text-xs font-bold">{{ color.name }}</span>
           </button>
@@ -109,15 +113,11 @@
       <p v-if="genError" class="text-sm text-terracotta">{{ genError }}</p>
 
       <!-- Generated results -->
-      <div v-if="generatedFront || generatedBack" class="space-y-3">
+      <div v-if="generatedFront" class="space-y-3 mt-6">
         <p class="text-sm font-bold text-sage">Готово! Вот твой дизайн:</p>
-        <div v-if="generatedFront" class="rounded-2xl border border-line bg-white p-3">
-          <p class="mb-2 text-xs font-bold text-ink/55">Вид спереди</p>
-          <img :src="generatedFront" alt="Дизайн — вид спереди" class="w-full rounded-xl" />
-        </div>
-        <div v-if="generatedBack" class="rounded-2xl border border-line bg-white p-3">
-          <p class="mb-2 text-xs font-bold text-ink/55">Вид сзади</p>
-          <img :src="generatedBack" alt="Дизайн — вид сзади" class="w-full rounded-xl" />
+        <div class="rounded-2xl border border-line bg-white p-3">
+          <p class="mb-2 text-xs font-bold text-ink/55">Вид спереди и сзади</p>
+          <img :src="generatedFront" alt="Дизайн одежды" class="w-full rounded-xl" />
         </div>
       </div>
     </div>
@@ -177,7 +177,7 @@ const logoName = ref(order.draft.design?.uploadedImageName ?? null)
 
 // AI state
 const aiStyle = ref<DesignStyle>(order.draft.design?.aiStyle as DesignStyle ?? 'minimal')
-const aiColor = ref<ShirtColor>(order.draft.design?.aiColor as ShirtColor ?? 'white')
+const aiColor = ref<ShirtColor | null>(order.draft.design?.aiColor as ShirtColor ?? null)
 const aiPrompt = ref(order.draft.design?.aiPrompt ?? '')
 const generating = ref(false)
 const genError = ref('')

@@ -20,8 +20,8 @@ export function useDesign() {
         },
       )
 
-      if (response && typeof response === 'object' && 'success' in response && response.success === false) {
-        error.value = response.error || 'Не удалось сгенерировать дизайн'
+      if ('success' in response && response.success === false) {
+        error.value = 'Сгенерированное изображение неполное — попробуйте ещё раз'
         return null
       }
 
