@@ -2,13 +2,13 @@
   <div class="slide-up pb-8">
     <!-- Hero -->
     <section class="relative overflow-hidden pt-6">
-      <div class="relative z-10 max-w-[300px]">
+      <div class="relative z-10 w-full max-w-[340px]">
         <h1
           class="text-[34px] font-extrabold leading-[1.08] tracking-[-.045em]"
         >
           Дизайн, который подходит именно тебе
         </h1>
-        <p class="mt-5 text-[17px] leading-7 text-ink/65">
+        <p class="mt-5 pr-4 text-[17px] leading-7 text-ink/65">
           Создай уникальное изделие и получи идеальную посадку без примерки
         </p>
         <NuxtLink
@@ -16,16 +16,16 @@
           class="mt-8 block w-[174px] rounded-xl bg-sage px-4 py-3.5 text-center text-sm font-bold text-white transition hover:bg-[#0a4ad4]"
           >Создать дизайн</NuxtLink
         >
-        <div class="mt-3 flex gap-3">
+        <div class="mt-3 flex w-full gap-2 pr-4">
           <NuxtLink
             to="/measurements"
-            class="block w-[174px] rounded-xl border border-line bg-white px-4 py-3.5 text-center text-sm font-bold text-ink transition hover:border-sage"
+            class="flex flex-1 items-center justify-center rounded-xl border border-line bg-white px-2 py-3.5 text-center text-sm font-bold text-ink transition hover:border-sage"
             >Снять мерки</NuxtLink
           >
           <a
             href="https://t.me/antonina1_designer"
             target="_blank"
-            class="flex w-[174px] items-center justify-center rounded-xl border border-line bg-white px-4 py-3.5 text-center text-sm font-bold text-ink transition hover:border-sage"
+            class="flex flex-1 items-center justify-center rounded-xl border border-line bg-white px-2 py-3.5 text-center text-xs font-bold leading-tight text-ink transition hover:border-sage"
             >Корпоративные заказы</a
           >
         </div>
