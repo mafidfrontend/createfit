@@ -14,20 +14,39 @@
 
     <div v-if="showPhotoUpload" class="mt-4 rounded-2xl border border-line bg-white p-4">
       <p class="text-sm font-bold">AI-анализ мерок по фото</p>
-      <p class="mt-2 text-xs leading-5 text-ink/55">Загрузи своё фото в полный рост. AI оценит твои параметры и подберёт размер. Результат приблизительный — при необходимости уточни мерки вручную.</p>
+      <p class="mt-2 text-xs leading-5 text-ink/55">Загрузите 2 фото (спереди и сбоку) в полный рост. AI оценит ваши параметры и подберёт размер. Результат приблизительный — при необходимости уточните мерки вручную.</p>
 
-      <label v-if="!photoPreview" class="mt-4 block cursor-pointer rounded-2xl border border-dashed border-sage bg-mint p-4">
-        <span class="text-sm font-bold text-sage">Загрузить фото</span>
-        <span class="mt-1 block text-xs text-ink/50">JPG, PNG, WEBP до 5 МБ</span>
-        <input class="hidden" type="file" accept="image/jpeg,image/png,image/webp" @change="handlePhoto">
-      </label>
+      <!-- 2 ta rasm yuklash oynasi -->
+      <div class="mt-4 grid grid-cols-2 gap-3">
+        <!-- 1. Foto sredi (Old tomon) -->
+        <div>
+          <label v-if="!frontPhotoPreview" class="block h-full cursor-pointer rounded-2xl border border-dashed border-sage bg-mint p-4 text-center transition hover:bg-sage/10">
+            <span class="block text-sm font-bold text-sage">Спереди</span>
+            <span class="mt-1 block text-[10px] text-ink/50">В полный рост</span>
+            <input class="hidden" type="file" accept="image/jpeg,image/png,image/webp" @change="(e) => handlePhoto(e, 'front')">
+          </label>
+          <div v-else class="relative overflow-hidden rounded-2xl border border-line bg-white">
+            <img :src="frontPhotoPreview" alt="Спереди" class="h-32 w-full object-cover" />
+            <button class="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-ink/70 text-[10px] font-bold text-white backdrop-blur" @click="removePhoto('front')">✕</button>
+          </div>
+        </div>
 
-      <div v-if="photoPreview" class="relative mt-3 overflow-hidden rounded-2xl bg-white">
-        <img :src="photoPreview" alt="Ваше фото" class="max-h-56 w-full object-contain" />
-        <button class="absolute right-2 top-2 rounded-full bg-ink px-3 py-1 text-xs font-bold text-white" @click="removePhoto">Удалить</button>
+        <!-- 2. Foto sboku (Yon tomon) -->
+        <div>
+          <label v-if="!sidePhotoPreview" class="block h-full cursor-pointer rounded-2xl border border-dashed border-sage bg-mint p-4 text-center transition hover:bg-sage/10">
+            <span class="block text-sm font-bold text-sage">Сбоку</span>
+            <span class="mt-1 block text-[10px] text-ink/50">Профиль</span>
+            <input class="hidden" type="file" accept="image/jpeg,image/png,image/webp" @change="(e) => handlePhoto(e, 'side')">
+          </label>
+          <div v-else class="relative overflow-hidden rounded-2xl border border-line bg-white">
+            <img :src="sidePhotoPreview" alt="Сбоку" class="h-32 w-full object-cover" />
+            <button class="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-ink/70 text-[10px] font-bold text-white backdrop-blur" @click="removePhoto('side')">✕</button>
+          </div>
+        </div>
       </div>
 
-      <button v-if="photoPreview && !analysisResult" class="mt-4 w-full rounded-xl bg-sage px-5 py-3.5 text-sm font-bold text-white transition hover:bg-[#0a4ad4] disabled:cursor-not-allowed disabled:bg-[#E2E8F0]" :disabled="analyzing" @click="analyzePhoto">
+      <!-- Ikkala rasm yuklanmaguncha tugma ishlamaydi -->
+      <button v-if="(frontPhotoPreview || sidePhotoPreview) && !analysisResult" class="mt-4 w-full rounded-xl bg-sage px-5 py-3.5 text-sm font-bold text-white transition hover:bg-[#0a4ad4] disabled:cursor-not-allowed disabled:opacity-50" :disabled="!frontPhotoPreview || !sidePhotoPreview || analyzing" @click="analyzePhoto">
         <span v-if="analyzing" class="flex items-center justify-center gap-2">
           <svg class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" /><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
           Анализ...
@@ -85,9 +104,16 @@ useSeoMeta({ robots: 'noindex, nofollow' })
 const order = useOrderStore()
 const error = ref('')
 const showPhotoUpload = ref(false)
-const photoPreview = ref('')
-const photoBase64 = ref('')
-const photoMime = ref('')
+
+// 2 ta rasm uchun State'lar
+const frontPhotoPreview = ref('')
+const frontPhotoBase64 = ref('')
+const frontPhotoMime = ref('')
+
+const sidePhotoPreview = ref('')
+const sidePhotoBase64 = ref('')
+const sidePhotoMime = ref('')
+
 const analyzing = ref(false)
 const analysisResult = ref<MeasurementResult | null>(null)
 const analysisError = ref('')
@@ -110,43 +136,65 @@ function selectCustom(): void {
   order.setSize({ type: 'custom', standardSize: null, customMeasurements: { ...measurements } })
 }
 
-function handlePhoto(event: Event): void {
+function handlePhoto(event: Event, type: 'front' | 'side'): void {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
   if (!file) return
-  if (file.size > 5 * 1024 * 1024) { analysisError.value = 'Файл слишком большой. Максимум — 5 МБ.'; return }
+  if (file.size > 5 * 1024 * 1024) { 
+    analysisError.value = 'Файл слишком большой. Максимум — 5 МБ.'
+    return 
+  }
+  
   analysisError.value = ''
   analysisResult.value = null
+  
   const reader = new FileReader()
   reader.onload = () => {
-    photoPreview.value = reader.result as string
-    photoBase64.value = reader.result as string
-    photoMime.value = file.type
+    if (type === 'front') {
+      frontPhotoPreview.value = reader.result as string
+      frontPhotoBase64.value = reader.result as string
+      frontPhotoMime.value = file.type
+    } else {
+      sidePhotoPreview.value = reader.result as string
+      sidePhotoBase64.value = reader.result as string
+      sidePhotoMime.value = file.type
+    }
   }
   reader.readAsDataURL(file)
 }
 
-function removePhoto(): void {
-  photoPreview.value = ''
-  photoBase64.value = ''
-  photoMime.value = ''
+function removePhoto(type: 'front' | 'side'): void {
+  if (type === 'front') {
+    frontPhotoPreview.value = ''
+    frontPhotoBase64.value = ''
+    frontPhotoMime.value = ''
+  } else {
+    sidePhotoPreview.value = ''
+    sidePhotoBase64.value = ''
+    sidePhotoMime.value = ''
+  }
   analysisResult.value = null
   analysisError.value = ''
 }
 
 async function analyzePhoto(): Promise<void> {
-  if (!photoBase64.value) return
+  // Ikkala rasm kiritilganini tekshiramiz
+  if (!frontPhotoBase64.value || !sidePhotoBase64.value) {
+    analysisError.value = 'Пожалуйста, загрузите оба фото (спереди и сбоку)'
+    return
+  }
+  
   analyzing.value = true
   analysisError.value = ''
   
   try {
-    // 1. Avval rasmni Supabase'ga yuklab, toza URL manzilini olamiz
+    // 1. Asosiy (old) rasmni Supabase'ga yuklab url olamiz (API shuni kutmoqda)
     const uploadRes = await $fetch<{ url: string }>('/api/upload', {
       method: 'POST',
       body: {
-        fileName: `measurement-${Date.now()}.jpg`,
-        fileType: photoMime.value,
-        base64Data: photoBase64.value
+        fileName: `measurement-front-${Date.now()}.jpg`,
+        fileType: frontPhotoMime.value,
+        base64Data: frontPhotoBase64.value
       }
     })
 

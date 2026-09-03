@@ -64,8 +64,9 @@ export default defineEventHandler(async (event) => {
       phone: body.contact.phone,
       address: `${body.delivery.city}, ${body.delivery.address}`
     })
-  } catch (tgError) {
-    console.error('Telegramga yuborishda muammo:', tgError)
+  } catch (error: any) {
+    // Xatoni aniq ko'rsatish uchun error.data ni log qilamiz
+    console.error('Telegramga xabar yuborishda xato yuz berdi:', error.data || error.message)
   }
   // ---------------------------------------
 

@@ -106,7 +106,8 @@ export async function sendOrderToTelegramGroup(orderData: any, customerData: { n
         }
       })
     }
-  } catch (error) {
-    console.error('Telegramga xabar yuborishda xato yuz berdi:', error)
+    } catch (error: any) {
+    // Xatoni aniq ko'rsatish uchun error.data ni log qilamiz
+    console.error('Telegramga xabar yuborishda xato yuz berdi:', error.data || error.message)
   }
 }
