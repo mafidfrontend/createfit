@@ -11,7 +11,7 @@ export async function analyzePhoto(imageBase64: string, mimeType: string): Promi
   let response: GeminiResponse
   try {
     // AYNAN SHU QATOR O'ZGARTIRILDI: -latest qo'shildi
-    response = await $fetch<GeminiResponse>('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash-latest:generateContent', {
+    response = await $fetch<GeminiResponse>('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash-latest:generateContent', {
       method: 'POST',
       query: { key: apiKey },
       headers: { 'Content-Type': 'application/json' },

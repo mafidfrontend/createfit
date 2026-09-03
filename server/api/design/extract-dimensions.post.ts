@@ -30,7 +30,7 @@ export default defineEventHandler(async (event) => {
 
     // 4. Gemini 2.5 Flash modeliga structured JSON so'rovi yuboramiz
     const response = await ai.models.generateContent({
-      model: 'gemini-3.6-flash',
+      model: 'gemini-3.8-flash',
       contents: [
         {
           inlineData: {

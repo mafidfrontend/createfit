@@ -64,7 +64,7 @@ IMPORTANT:
 
     // 4. Gemini 2.5 Flash
     const response = await ai.models.generateContent({
-      model: 'gemini-3.6-flash',
+      model: 'gemini-3.8-flash',
 
       contents: [
         {
