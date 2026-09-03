@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 async function generateAndUpload(prompt: string, negativePrompt: string, stabilityApiKey: string, supabase: any): Promise<string> {
   const formData = new FormData()
   formData.append('prompt', prompt)
-  formData.append('negative_prompt', negativePrompt) // Nimalar bo'lmasligi kerak
+  formData.append('negative_prompt', negativePrompt)
   formData.append('output_format', 'png')
   formData.append('aspect_ratio', '4:5')
 
@@ -51,28 +51,45 @@ export default defineEventHandler(async (event) => {
     const { productName, fabric, color, style, prompt } = body
 
     const stabilityApiKey = process.env.STABILITY_API_KEY
-    if (!stabilityApiKey) {
-      throw createError({ statusCode: 500, message: 'Stability API key topilmadi' })
-    }
+    if (!stabilityApiKey) throw createError({ statusCode: 500, message: 'Stability API key topilmadi' })
 
     const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    if (!supabaseUrl || !serviceKey) throw createError({ statusCode: 500, message: 'Supabase kalitlari topilmadi' })
 
-    if (!supabaseUrl || !serviceKey) {
-      throw createError({ statusCode: 500, message: 'Supabase kalitlari topilmadi' })
+    const supabase = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } })
+
+    // --- YANNGI QISM: Gemini orqali ruscha dizaynni inglizcha promptga tarjima qilish ---
+    let englishDesignDescription = `${color} ${productName}, made of ${fabric}. Style: ${style}. Concept: ${prompt}`
+    const geminiApiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY
+    
+    if (geminiApiKey) {
+      try {
+        const geminiInstruction = `Act as an expert AI prompt engineer. Translate and enhance the following Russian clothing design description into a highly detailed English prompt for Stable Diffusion. If words like "адрас" or "икат" are used, translate them as "traditional Central Asian ikat/adras pattern". 
+        
+        Original description: Color: ${color}, Item: ${productName}, Fabric: ${fabric}, Style: ${style}, Design concept: ${prompt}.
+        
+        Return ONLY the enhanced English description, nothing else.`
+        
+        const geminiRes = await $fetch<any>(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash-latest:generateContent?key=${geminiApiKey}`, {
+          method: 'POST',
+          body: { contents: [{ parts: [{ text: geminiInstruction }] }], generationConfig: { temperature: 0.3 } }
+        })
+        const translatedText = geminiRes.candidates?.[0]?.content?.parts?.[0]?.text
+        if (translatedText) englishDesignDescription = translatedText.trim()
+      } catch (e) {
+        console.error('Gemini tarjimasida xatolik yuz berdi', e)
+      }
     }
+    // -------------------------------------------------------------------------
 
-    const supabase = createClient(supabaseUrl, serviceKey, {
-      auth: { persistSession: false },
-    })
-
-    // 1. Yangilangan va qat'iy Prompt (Faqat kiyim)
-    const finalPrompt = `A single, perfectly isolated ${color} ${productName}, made of ${fabric}. Style: ${style}. The graphic design concept: "${prompt}". Minimalist studio product shot, perfectly centered, pure solid white background. Only the clothing item is visible. Photorealistic, 8k.`
+    // 1. Yangilangan va qat'iy Prompt (Toza ingliz tilida)
+    const finalPrompt = `A single, perfectly isolated clothing item. ${englishDesignDescription}. Minimalist studio product shot, perfectly centered, pure solid white background. Only the clothing item is visible. Photorealistic, 8k.`
     
     // 2. Nimalar bo'lmasligi kerak (Negative Prompt)
     const negativePrompt = `props, accessories, shoes, sunglasses, hats, extra items, people, flat lay composition, cluttered, multiple objects, messy background, text, watermark`
 
-    // 3. Faqat bitta rasm yaratamiz (bir xillik va tezlik uchun)
+    // 3. Rasm yaratish
     const generatedImageUrl = await generateAndUpload(finalPrompt, negativePrompt, stabilityApiKey, supabase)
 
     return {
