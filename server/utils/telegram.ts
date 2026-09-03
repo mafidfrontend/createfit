@@ -56,34 +56,33 @@ export async function sendOrderToTelegramGroup(orderData: any, customerData: { n
     return
   }
 
-  const orderNumber = orderData.order_number || 'Yangi'
-  const product = orderData.product?.name || 'Kiyim'
-  const fabric = orderData.fabric?.name || 'Standart'
-  const size = orderData.size?.standardSize || orderData.size || 'Maxsus'
-  const price = orderData.total_price ? `${orderData.total_price} $` : 'Kelishilgan'
+  const orderNumber = orderData.order_number || 'Новый'
+  const product = orderData.product?.name || 'Одежда'
+  const fabric = orderData.fabric?.name || 'Стандарт'
+  const size = orderData.size?.standardSize || orderData.size || 'Индивидуальный'
+  const price = orderData.total_price ? `${orderData.total_price} $` : 'Договорная'
   
-  let designInfo = 'Standart'
-  if (orderData.design?.type === 'existing') designInfo = `Tayyor dizayn: ${orderData.design.existingDesignName}`
+  let designInfo = 'Стандарт'
+  if (orderData.design?.type === 'existing') designInfo = `Готовый дизайн: ${orderData.design.existingDesignName}`
   else if (orderData.design?.type === 'ai') designInfo = `AI: ${orderData.design.aiPrompt}`
-  else if (orderData.design?.type === 'uploaded') designInfo = 'Mijoz rasmi yuklangan'
+  else if (orderData.design?.type === 'uploaded') designInfo = 'Фото от клиента'
 
   const messageText = `
-🛍 <b>YANGI BUYURTMA #${orderNumber}</b>
+🛍 <b>НОВЫЙ ЗАКАЗ #${orderNumber}</b>
 
-👤 <b>Ismi:</b> ${customerData.name}
-📞 <b>Telefon raqami:</b> ${customerData.phone}
-📍 <b>Manzil:</b> ${customerData.address}
+👤 <b>Имя:</b> ${customerData.name}
+📞 <b>Телефон:</b> ${customerData.phone}
+📍 <b>Адрес:</b> ${customerData.address}
 
-📦 <b>Buyurtma ma'lumoti:</b>
-• <b>Kiyim:</b> ${product}
-• <b>Mato:</b> ${fabric}
-• <b>O'lcham:</b> ${size}
-• <b>Dizayn:</b> ${designInfo}
-💵 <b>Jami summa:</b> ${price}
+📦 <b>Детали заказа:</b>
+• <b>Изделие:</b> ${product}
+• <b>Ткань:</b> ${fabric}
+• <b>Размер:</b> ${size}
+• <b>Дизайн:</b> ${designInfo}
+💵 <b>Итого:</b> ${price}
 `
 
   try {
-    // 1. Matnli xabarni yuborish
     await $fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
       method: 'POST',
       body: {
@@ -93,7 +92,6 @@ export async function sendOrderToTelegramGroup(orderData: any, customerData: { n
       }
     })
 
-    // 2. Agar dizayn rasmi mavjud bo'lsa, uni ham yuborish
     const imageUrl = orderData.design?.aiFrontImage || orderData.design?.uploadedImageUrl
     if (imageUrl) {
       await $fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
@@ -101,13 +99,12 @@ export async function sendOrderToTelegramGroup(orderData: any, customerData: { n
         body: {
           chat_id: chatId,
           photo: imageUrl,
-          caption: `🖼 <b>#${orderNumber}</b> dizayn rasmi`,
+          caption: `🖼 <b>Дизайн для заказа #${orderNumber}</b>`,
           parse_mode: 'HTML'
         }
       })
     }
-    } catch (error: any) {
-    // Xatoni aniq ko'rsatish uchun error.data ni log qilamiz
-    console.error('Telegramga xabar yuborishda xato yuz berdi:', error.data || error.message)
+  } catch (error) {
+    console.error('Telegramga xabar yuborishda xato yuz berdi:', error)
   }
 }
