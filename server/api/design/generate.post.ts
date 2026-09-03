@@ -83,11 +83,11 @@ export default defineEventHandler(async (event) => {
     }
     // -------------------------------------------------------------------------
 
-    // 1. Yangilangan va qat'iy Prompt (Toza ingliz tilida)
-    const finalPrompt = `A single, perfectly isolated clothing item. ${englishDesignDescription}. Minimalist studio product shot, perfectly centered, pure solid white background. Only the clothing item is visible. Photorealistic, 8k.`
+    // 1. Yangilangan va qat'iy Prompt (Old va orqa tomon yonma-yon)
+    const finalPrompt = `A high-quality, split-view professional apparel mockup showing two sides of a single ${productName} side-by-side. On the left is the front view, and on the right is the back view. ${englishDesignDescription}. Minimalist studio product shot, perfectly centered, pure solid white background. Photorealistic, highly detailed, 8k resolution.`
     
     // 2. Nimalar bo'lmasligi kerak (Negative Prompt)
-    const negativePrompt = `props, accessories, shoes, sunglasses, hats, extra items, people, flat lay composition, cluttered, multiple objects, messy background, text, watermark`
+    const negativePrompt = `single view, only one side, folded, distorted proportions, props, accessories, shoes, sunglasses, hats, people, text, watermark, messy background`
 
     // 3. Rasm yaratish
     const generatedImageUrl = await generateAndUpload(finalPrompt, negativePrompt, stabilityApiKey, supabase)
