@@ -178,7 +178,6 @@ function removePhoto(type: 'front' | 'side'): void {
 }
 
 async function analyzePhoto(): Promise<void> {
-  // Ikkala rasm kiritilganini tekshiramiz
   if (!frontPhotoBase64.value || !sidePhotoBase64.value) {
     analysisError.value = 'Пожалуйста, загрузите оба фото (спереди и сбоку)'
     return
@@ -188,39 +187,33 @@ async function analyzePhoto(): Promise<void> {
   analysisError.value = ''
   
   try {
-    // 1. Asosiy (old) rasmni Supabase'ga yuklab url olamiz (API shuni kutmoqda)
-    const uploadRes = await $fetch<{ url: string }>('/api/upload', {
-      method: 'POST',
-      body: {
-        fileName: `measurement-front-${Date.now()}.jpg`,
-        fileType: frontPhotoMime.value,
-        base64Data: frontPhotoBase64.value
-      }
-    })
-
-    // 2. O'sha olingan URL manzilni Gemini API'ga tahlil uchun yuboramiz
+    // Rasmlarni to'g'ridan-to'g'ri AI tahliliga yuboramiz (Bazada saqlanmaydi - 100% maxfiylik!)
     const response = await $fetch<{ success: boolean, dimensions: any }>('/api/measurements/analyze', {
       method: 'POST',
       body: { 
-        imageUrl: uploadRes.url,
+        frontImageBase64: frontPhotoBase64.value,
+        frontImageMime: frontPhotoMime.value,
+        sideImageBase64: sidePhotoBase64.value,
+        sideImageMime: sidePhotoMime.value,
         productType: order.draft.product?.name || 'одежда' 
       }
     })
     
-    // 3. Gemini'dan qaytgan JSON javobni Frontend kutayotgan shaklga moslaymiz
     if (response.success && response.dimensions) {
       const dim = response.dimensions
       analysisResult.value = {
         recommendedSize: 'Индивидуальный (AI)',
         confidence: dim.confidence_score ? Math.round(dim.confidence_score * 100) : 92,
         measurements: {
-          height: dim.length_cm,     // Длина изделия
+          height: dim.length_cm,     // Длина
           chest: dim.chest_cm,       // Грудь
+          waist: dim.waist_cm,       // Талия (Qo'shildi)
+          hips: dim.hips_cm,         // Бёдра (Qo'shildi)
           shoulder: dim.shoulder_cm, // Плечо
           sleeve: dim.sleeve_cm      // Рукав
         },
         notes: 'AI успешно рассчитал примерные мерки по фото. Вы можете применить их и отредактировать вручную.'
-      } as any // TS xato bermasligi uchun
+      } as any
     }
   } catch (err: any) {
     analysisError.value = err.message || 'Не удалось проанализировать фото. Попробуйте другое изображение.'
