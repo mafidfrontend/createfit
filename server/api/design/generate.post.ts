@@ -59,7 +59,7 @@ async function callGeminiWithRetry(
       console.log(`Gemini so'rovi: urinish ${attempt}/${maxRetries}`)
       
       const response = await $fetch<any>(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${geminiApiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`,
         {
           method: 'POST',
           headers: {
