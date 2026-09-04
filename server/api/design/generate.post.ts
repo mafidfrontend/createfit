@@ -130,10 +130,10 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    // ===== STABLE DIFFUSION PROMPT (YANGILANGAN) =====
-    const finalPrompt = `Ghost mannequin photography, floating empty clothing on an invisible model. A high-quality, split-view studio shot showing two sides of a single completely empty ${productName} side-by-side. Left side is front view, right side is back view. ${englishDesignDescription}. Floating apparel, completely empty inside, perfectly centered, pure solid white background. Photorealistic, highly detailed, 8k resolution, strict NO HUMANS, NO BODY PARTS, NO FACES.`
+    // ===== STABLE DIFFUSION PROMPT (FLAT LAY USLUBI) =====
+    const finalPrompt = `Commercial e-commerce product photography, FLAT LAY style. An isolated clothing item laid perfectly flat on a pure white background. NO PEOPLE, NO MANNEQUINS. Front and back views of: ${englishDesignDescription}. Meticulously arranged flat garment, highly detailed fabric texture, studio lighting, photorealistic, 8k resolution, crisp edges.`
     
-    const negativePrompt = `human, people, model, wearing, person, body, face, hands, single view, only one side, folded, distorted proportions, props, accessories, shoes, messy background`
+    const negativePrompt = `human, person, body, model, wearing, mannequin, dummy, 3d render, hands, face, floating, hanging, wrinkled, messy background, text, watermark`
 
     const keysEnv = process.env.STABILITY_API_KEYS || process.env.STABILITY_API_KEY || ''
     const stabilityKeys = keysEnv.split(',').map(k => k.trim()).filter(Boolean)
