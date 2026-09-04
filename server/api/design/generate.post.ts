@@ -130,8 +130,10 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    const finalPrompt = `A high-quality, split-view professional apparel mockup showing two sides of a single ${productName} side-by-side. Left side is front view, right side is back view. ${englishDesignDescription}. Minimalist studio product shot, perfectly centered, pure solid white background. Photorealistic, highly detailed, 8k resolution, no models, no humans.`
-    const negativePrompt = `human, people, model, wearing, single view, only one side, folded, distorted proportions, props, accessories, shoes, messy background`
+    // ===== STABLE DIFFUSION PROMPT (YANGILANGAN) =====
+    const finalPrompt = `Ghost mannequin photography, floating empty clothing on an invisible model. A high-quality, split-view studio shot showing two sides of a single completely empty ${productName} side-by-side. Left side is front view, right side is back view. ${englishDesignDescription}. Floating apparel, completely empty inside, perfectly centered, pure solid white background. Photorealistic, highly detailed, 8k resolution, strict NO HUMANS, NO BODY PARTS, NO FACES.`
+    
+    const negativePrompt = `human, people, model, wearing, person, body, face, hands, single view, only one side, folded, distorted proportions, props, accessories, shoes, messy background`
 
     const keysEnv = process.env.STABILITY_API_KEYS || process.env.STABILITY_API_KEY || ''
     const stabilityKeys = keysEnv.split(',').map(k => k.trim()).filter(Boolean)
