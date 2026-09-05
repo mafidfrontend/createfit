@@ -35,7 +35,7 @@
         <button class="absolute right-2 top-2 rounded-full bg-ink/70 px-3 py-1 text-xs font-bold text-white backdrop-blur transition hover:bg-terracotta" @click="removeLogo">Удалить</button>
       </div>
 
-      <!-- YANNGI: Gemini AI Sizes Results -->
+      <!-- Gemini AI Sizes Results -->
       <div v-if="extractingDimensions" class="mt-4 flex items-center justify-center gap-2 rounded-2xl border border-line bg-white p-4 text-sm font-bold text-sage">
         <svg class="h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" /><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
         AI распознает размеры...
@@ -54,72 +54,82 @@
     </div>
 
     <!-- AI design creation -->
-    <div v-else class="mt-4 space-y-4">
-      <!-- Logo upload for AI -->
-      <div>
-        <label class="text-sm font-bold">Логотип или графика <span class="font-normal text-ink/45">(необязательно)</span></label>
-        <label class="mt-2 block cursor-pointer rounded-2xl border border-dashed border-line bg-white p-4 transition hover:border-sage" :class="{ 'opacity-60 pointer-events-none': uploadingLogo }">
-          <span class="text-sm font-bold text-ink/70">{{ uploadingLogo ? 'Загрузка...' : 'Загрузить логотип или графику' }}</span>
-          <span class="mt-1 block text-xs text-ink/45">PNG, JPG, WEBP — будет включён в генерацию</span>
-          <input class="hidden" type="file" accept="image/jpeg,image/png,image/webp" :disabled="uploadingLogo" @change="handleLogoUpload">
-        </label>
-        <div v-if="logoPreview" class="relative mt-3 overflow-hidden rounded-2xl bg-white border border-line">
-          <img :src="logoPreview" alt="Предпросмотр логотипа" class="max-h-40 w-full object-contain" />
-          <button class="absolute right-2 top-2 rounded-full bg-ink/70 px-3 py-1 text-xs font-bold text-white backdrop-blur transition hover:bg-terracotta" @click="removeLogo">Удалить</button>
+    <div v-else class="mt-4">
+      
+      <!-- GENERATION FORM (Faqat tahrirlash rejimida ko'rinadi) -->
+      <div v-show="isEditingAi" class="space-y-4">
+        <!-- Logo upload for AI -->
+        <div>
+          <label class="text-sm font-bold">Логотип или графика <span class="font-normal text-ink/45">(необязательно)</span></label>
+          <label class="mt-2 block cursor-pointer rounded-2xl border border-dashed border-line bg-white p-4 transition hover:border-sage" :class="{ 'opacity-60 pointer-events-none': uploadingLogo }">
+            <span class="text-sm font-bold text-ink/70">{{ uploadingLogo ? 'Загрузка...' : 'Загрузить логотип или графику' }}</span>
+            <span class="mt-1 block text-xs text-ink/45">PNG, JPG, WEBP — будет включён в генерацию</span>
+            <input class="hidden" type="file" accept="image/jpeg,image/png,image/webp" :disabled="uploadingLogo" @change="handleLogoUpload">
+          </label>
+          <div v-if="logoPreview" class="relative mt-3 overflow-hidden rounded-2xl bg-white border border-line">
+            <img :src="logoPreview" alt="Предпросмотр логотипа" class="max-h-40 w-full object-contain" />
+            <button class="absolute right-2 top-2 rounded-full bg-ink/70 px-3 py-1 text-xs font-bold text-white backdrop-blur transition hover:bg-terracotta" @click="removeLogo">Удалить</button>
+          </div>
         </div>
-      </div>
 
-      <!-- Style -->
-      <div>
-        <label class="text-sm font-bold">Стиль</label>
-        <div class="mt-2 grid grid-cols-3 gap-2">
-          <button v-for="style in DESIGN_STYLES" :key="style.id" class="rounded-xl border bg-white p-3 text-left transition" :class="aiStyle === style.id ? 'border-sage bg-mint' : 'border-line'" @click="aiStyle = style.id">
-            <span class="text-xs font-bold">{{ style.name }}</span>
-            <span class="mt-1 block text-[10px] leading-4 text-ink/45">{{ style.description }}</span>
-          </button>
+        <!-- Style -->
+        <div>
+          <label class="text-sm font-bold">Стиль</label>
+          <div class="mt-2 grid grid-cols-3 gap-2">
+            <button v-for="style in DESIGN_STYLES" :key="style.id" class="rounded-xl border bg-white p-3 text-left transition" :class="aiStyle === style.id ? 'border-sage bg-mint' : 'border-line'" @click="aiStyle = style.id">
+              <span class="text-xs font-bold">{{ style.name }}</span>
+              <span class="mt-1 block text-[10px] leading-4 text-ink/45">{{ style.description }}</span>
+            </button>
+          </div>
         </div>
-      </div>
 
-      <!-- Color -->
-      <div>
-        <label class="text-sm font-bold">Цвет изделия <span class="font-normal text-ink/45">(необязательно)</span></label>
-        <div class="mt-2 flex flex-wrap gap-2">
-          <!-- @click qismida rangni olib tashlash imkoniyatini qo'shdik -->
-          <button v-for="color in SHIRT_COLORS" :key="color.id" 
-            class="flex items-center gap-2 rounded-xl border px-3 py-2.5 transition" 
-            :class="aiColor === color.id ? 'border-sage ring-2 ring-sage/10 bg-mint' : 'border-line'" 
-            @click="aiColor = aiColor === color.id ? null : color.id">
-            <span class="h-5 w-5 rounded-full border border-line" :style="{ background: color.hex }" />
-            <span class="text-xs font-bold">{{ color.name }}</span>
-          </button>
+        <!-- Color -->
+        <div>
+          <label class="text-sm font-bold">Цвет изделия <span class="font-normal text-ink/45">(необязательно)</span></label>
+          <div class="mt-2 flex flex-wrap gap-2">
+            <button v-for="color in SHIRT_COLORS" :key="color.id" 
+              class="flex items-center gap-2 rounded-xl border px-3 py-2.5 transition" 
+              :class="aiColor === color.id ? 'border-sage ring-2 ring-sage/10 bg-mint' : 'border-line'" 
+              @click="aiColor = aiColor === color.id ? null : color.id">
+              <span class="h-5 w-5 rounded-full border border-line" :style="{ background: color.hex }" />
+              <span class="text-xs font-bold">{{ color.name }}</span>
+            </button>
+          </div>
         </div>
+
+        <!-- Prompt -->
+        <div>
+          <label class="text-sm font-bold">Описание дизайна</label>
+          <textarea v-model="aiPrompt" class="mt-2 min-h-20 w-full resize-none rounded-2xl border border-line bg-cream px-4 py-3 text-sm outline-none focus:border-sage" placeholder="Опиши, какой дизайн хочешь увидеть на изделии — например, минималистичный логотип с горами на груди"></textarea>
+        </div>
+
+        <!-- Generate button -->
+        <button class="w-full rounded-xl bg-sage px-5 py-3.5 text-sm font-bold text-white transition hover:bg-[#0a4ad4] disabled:cursor-not-allowed disabled:bg-[#E2E8F0] disabled:text-[#64748B]" :disabled="!canGenerate || generating" @click="generate">
+          <span v-if="generating" class="flex items-center justify-center gap-2">
+            <svg class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" /><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+            Генерация...
+          </span>
+          <span v-else>{{ generatedFront ? 'Сгенерировать новый вариант' : 'Сгенерировать дизайн' }}</span>
+        </button>
+        <p v-if="genError" class="text-sm text-terracotta">{{ genError }}</p>
       </div>
 
-      <!-- Prompt -->
-      <div>
-        <label class="text-sm font-bold">Описание дизайна</label>
-        <textarea v-model="aiPrompt" class="mt-2 min-h-20 w-full resize-none rounded-2xl border border-line bg-cream px-4 py-3 text-sm outline-none focus:border-sage" placeholder="Опиши, какой дизайн хочешь увидеть на изделии — например, минималистичный логотип с горами на груди"></textarea>
-      </div>
-
-      <!-- Generate button -->
-      <button class="w-full rounded-xl bg-sage px-5 py-3.5 text-sm font-bold text-white transition hover:bg-[#0a4ad4] disabled:cursor-not-allowed disabled:bg-[#E2E8F0] disabled:text-[#64748B]" :disabled="!canGenerate || generating" @click="generate">
-        <span v-if="generating" class="flex items-center justify-center gap-2">
-          <svg class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" /><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
-          Генерация...
-        </span>
-        <span v-else>Сгенерировать дизайн</span>
-      </button>
-
-      <p v-if="genError" class="text-sm text-terracotta">{{ genError }}</p>
-
-      <!-- Generated results -->
+      <!-- Generated results (Yangi UI mantiqi bilan) -->
       <div v-if="generatedFront" class="space-y-3 mt-6">
-        <p class="text-sm font-bold text-sage">Готово! Вот твой дизайн:</p>
+        <p v-if="!isEditingAi" class="text-sm font-bold text-sage">Готово! Вот твой дизайн:</p>
+        <p v-else class="text-sm font-bold text-ink/70">Предыдущий результат:</p>
+        
         <div class="rounded-2xl border border-line bg-white p-3">
           <p class="mb-2 text-xs font-bold text-ink/55">Вид спереди и сзади</p>
           <img :src="generatedFront" alt="Дизайн одежды" class="w-full rounded-xl" />
         </div>
+
+        <!-- Tahrirlash rejimiga o'tish tugmasi -->
+        <button v-if="!isEditingAi" class="mt-2 w-full rounded-xl border border-sage bg-white px-5 py-3.5 text-sm font-bold text-sage transition hover:bg-sage hover:text-white" @click="isEditingAi = true">
+          Редактировать описание
+        </button>
       </div>
+      
     </div>
 
     <p v-if="error" class="mt-3 text-sm text-terracotta">{{ error }}</p>
@@ -139,12 +149,14 @@ const error = ref('')
 const activeTab = ref<'existing' | 'upload' | 'ai'>('existing')
 const selectedExisting = computed(() => order.draft.design?.existingDesignId ?? '')
 
+// Yangi State: Tahrirlash rejimini boshqarish uchun
+const isEditingAi = ref(!order.draft.design?.aiFrontImage)
+
 // --- Gemini orqali o'lchamlarni olish state'lari ---
 const extractedDimensions = ref<{ chest_cm?: number; length_cm?: number; shoulder_cm?: number; sleeve_cm?: number } | null>(null)
 const extractingDimensions = ref(false)
 const extractError = ref('')
 
-// --- Gemini'ga rasmni yuborib, o'lchamlarni oluvchi funksiya ---
 async function extractDimensionsFromImage(imageUrl: string) {
   extractingDimensions.value = true
   extractError.value = ''
@@ -199,6 +211,7 @@ function selectExisting(design: { id: string; name: string }): void {
   generatedFront.value = null
   generatedBack.value = null
   extractedDimensions.value = null
+  isEditingAi.value = true
   order.setDesign({ type: 'existing', existingDesignId: design.id, existingDesignName: design.name, uploadedImageUrl: null, uploadedImageName: null, additionalPrice: 0, aiPrompt: null, aiStyle: null, aiColor: null, aiFrontImage: null, aiBackImage: null })
 }
 
@@ -229,7 +242,6 @@ async function handleLogoUpload(event: Event): Promise<void> {
       logoUrl.value = response.url
       logoName.value = file.name
 
-      // YANNGI: Rasm yuklanib bo'lishi bilan o'lchamlarni hisoblashni boshlaymiz
       if (activeTab.value === 'upload') {
         await extractDimensionsFromImage(response.url)
       }
@@ -281,6 +293,9 @@ async function generate(): Promise<void> {
     })
     generatedFront.value = result.frontImage
     generatedBack.value = result.backImage
+    
+    // Muvaffaqiyatli chizilgach, formani yashirib faqat rasmni ko'rsatamiz
+    isEditingAi.value = false
 
     const design: Design = {
       type: 'ai',
