@@ -1,110 +1,136 @@
-import { createClient } from '@supabase/supabase-js'
-import { GoogleGenAI } from '@google/genai'
+import { createClient } from "@supabase/supabase-js";
+import { GoogleGenAI } from "@google/genai";
 
-async function generateAndUpload(prompt: string, negativePrompt: string, stabilityApiKey: string, supabase: any): Promise<string> {
-  const formData = new FormData()
-  formData.append('prompt', prompt)
-  formData.append('negative_prompt', negativePrompt)
-  formData.append('output_format', 'png')
-  formData.append('aspect_ratio', '4:5')
+async function generateAndUpload(
+  prompt: string,
+  negativePrompt: string,
+  stabilityApiKey: string,
+  supabase: any,
+): Promise<string> {
+  const formData = new FormData();
+  formData.append("prompt", prompt);
+  formData.append("negative_prompt", negativePrompt);
+  formData.append("output_format", "png");
+  formData.append("aspect_ratio", "4:5");
 
-  const response = await fetch('https://api.stability.ai/v2beta/stable-image/generate/core', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${stabilityApiKey}`,
-      'Accept': 'image/*'
+  const response = await fetch(
+    "https://api.stability.ai/v2beta/stable-image/generate/core",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${stabilityApiKey}`,
+        Accept: "image/*",
+      },
+      body: formData,
     },
-    body: formData
-  })
+  );
 
   if (!response.ok) {
-    const errText = await response.text()
-    throw new Error(`Stability xatosi: ${errText}`)
+    const errText = await response.text();
+    throw new Error(`Stability xatosi: ${errText}`);
   }
 
-  const imageArrayBuffer = await response.arrayBuffer()
-  const imageBuffer = Buffer.from(imageArrayBuffer)
-  const uniqueFileName = `ai-generated-${Date.now()}.png`
+  const imageArrayBuffer = await response.arrayBuffer();
+  const imageBuffer = Buffer.from(imageArrayBuffer);
+  const uniqueFileName = `ai-generated-${Date.now()}.png`;
 
-  const { error: uploadError } = await supabase.storage.from('designs').upload(uniqueFileName, imageBuffer, {
-    contentType: 'image/png',
-    upsert: false
-  })
+  const { error: uploadError } = await supabase.storage
+    .from("designs")
+    .upload(uniqueFileName, imageBuffer, {
+      contentType: "image/png",
+      upsert: false,
+    });
 
-  if (uploadError) throw new Error(`Supabase xatosi: ${uploadError.message}`)
+  if (uploadError) throw new Error(`Supabase xatosi: ${uploadError.message}`);
 
-  const { data: publicUrlData } = supabase.storage.from('designs').getPublicUrl(uniqueFileName)
-  return publicUrlData.publicUrl
+  const { data: publicUrlData } = supabase.storage
+    .from("designs")
+    .getPublicUrl(uniqueFileName);
+  return publicUrlData.publicUrl;
 }
 
 // ===== GEMINI QAYTA URINISH FUNKSIYASI (YANGI SDK BILAN) =====
 async function callGeminiWithRetry(
-  geminiApiKey: string, 
-  promptText: string, 
-  maxRetries: number = 3
+  geminiApiKey: string,
+  promptText: string,
+  maxRetries: number = 3,
 ): Promise<string> {
   if (!geminiApiKey) {
-    throw new Error('Gemini API kaliti topilmadi')
+    throw new Error("Gemini API kaliti topilmadi");
   }
 
   // Yangi rasmiy SDK ni ishga tushiramiz
-  const ai = new GoogleGenAI({ apiKey: geminiApiKey })
-  let lastError = null
-  
+  const ai = new GoogleGenAI({ apiKey: geminiApiKey });
+  let lastError = null;
+
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      console.log(`Gemini (3.8-flash) so'rovi: urinish ${attempt}/${maxRetries}`)
-      
+      console.log(
+        `Gemini (3.8-flash) so'rovi: urinish ${attempt}/${maxRetries}`,
+      );
+
       // AI Studio hujjatlaridagi aynan o'sha sintaksis
       const interaction = await ai.interactions.create({
         model: "gemini-3.8-flash",
-        input: promptText
-      })
+        input: promptText,
+      });
 
       if (!interaction || !interaction.output_text) {
-        throw new Error('Gemini dan bo\'sh javob keldi')
+        throw new Error("Gemini dan bo'sh javob keldi");
       }
 
-      console.log(`Gemini muvaffaqiyatli: ${interaction.output_text.substring(0, 50)}...`)
-      return interaction.output_text
-
+      console.log(
+        `Gemini muvaffaqiyatli: ${interaction.output_text.substring(0, 50)}...`,
+      );
+      return interaction.output_text;
     } catch (error: any) {
-      lastError = error
-      const errorMessage = error.message || ''
-      
-      const isAuthError = errorMessage.includes('key') || errorMessage.includes('auth') || errorMessage.includes('403')
-      if (isAuthError) {
-        throw new Error(`Gemini autentifikatsiya xatosi: ${errorMessage}`)
-      }
-      
-      if (attempt === maxRetries) break
+      lastError = error;
+      const errorMessage = error.message || "";
 
-      const waitTime = Math.min(1000 * Math.pow(2, attempt - 1), 8000)
-      console.warn(`Gemini xatosi (${errorMessage}): ${waitTime}ms kutish...`)
-      await new Promise(resolve => setTimeout(resolve, waitTime))
+      const isAuthError =
+        errorMessage.includes("key") ||
+        errorMessage.includes("auth") ||
+        errorMessage.includes("403");
+      if (isAuthError) {
+        throw new Error(`Gemini autentifikatsiya xatosi: ${errorMessage}`);
+      }
+
+      if (attempt === maxRetries) break;
+
+      const waitTime = Math.min(1000 * Math.pow(2, attempt - 1), 8000);
+      console.warn(`Gemini xatosi (${errorMessage}): ${waitTime}ms kutish...`);
+      await new Promise((resolve) => setTimeout(resolve, waitTime));
     }
   }
 
-  throw new Error(`Gemini ishlamadi: ${lastError?.message || 'Noma\'lum xato'}`)
+  throw new Error(`Gemini ishlamadi: ${lastError?.message || "Noma'lum xato"}`);
 }
 
 export default defineEventHandler(async (event) => {
   try {
-    const body = await readBody(event)
-    const { productName, fabric, color, style, prompt, uploadedImageUrl } = body
+    const body = await readBody(event);
+    const { productName, fabric, color, style, prompt, uploadedImageUrl } =
+      body;
 
-    const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-    
+    const supabaseUrl =
+      process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
     if (!supabaseUrl || !serviceKey) {
-      throw createError({ statusCode: 500, message: 'Supabase kalitlari topilmadi.' })
+      throw createError({
+        statusCode: 500,
+        message: "Supabase kalitlari topilmadi.",
+      });
     }
 
-    const supabase = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } })
+    const supabase = createClient(supabaseUrl, serviceKey, {
+      auth: { persistSession: false },
+    });
 
-    let englishDesignDescription = `${color} ${productName}, made of ${fabric}. Style: ${style}. Concept: ${prompt}`
-    const geminiApiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY
-    
+    let englishDesignDescription = `${color} ${productName}, made of ${fabric}. Style: ${style}. Concept: ${prompt}`;
+    const geminiApiKey =
+      process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
+
     if (geminiApiKey) {
       try {
         let geminiInstruction = `Act as an expert AI prompt engineer. Translate and enhance the user's Russian clothing design description into a highly detailed English prompt for Stable Diffusion. 
@@ -112,66 +138,85 @@ export default defineEventHandler(async (event) => {
         Translate "адрас" or "икат" as "traditional Central Asian ikat/adras pattern".
         
         User description: ${prompt}.
-        Return ONLY the enhanced English description, nothing else.`
+        Return ONLY the enhanced English description, nothing else.`;
 
         // Agar rasm ham yuborilgan bo'lsa, uni URL sifatida matnga qo'shamiz (yangi SDK uchun eng xavfsiz usul)
         if (uploadedImageUrl) {
-            geminiInstruction += `\n\nPlease also consider the visual style of this reference image: ${uploadedImageUrl}`
+          geminiInstruction += `\n\nPlease also consider the visual style of this reference image: ${uploadedImageUrl}`;
         }
-        
+
         // Yangi SDK orqali tarjima qilish
-        const translatedText = await callGeminiWithRetry(geminiApiKey, geminiInstruction, 3)
-        
+        const translatedText = await callGeminiWithRetry(
+          geminiApiKey,
+          geminiInstruction,
+          3,
+        );
+
         if (translatedText && translatedText.trim().length > 0) {
-          englishDesignDescription = translatedText.trim()
+          englishDesignDescription = translatedText.trim();
         }
       } catch (geminiError: any) {
-        console.error('Gemini xatosi (default ishlatiladi):', geminiError.message)
+        console.error(
+          "Gemini xatosi (default ishlatiladi):",
+          geminiError.message,
+        );
       }
     }
 
-    // ===== STABLE DIFFUSION PROMPT (FLAT LAY USLUBI) =====
-    const finalPrompt = `NO human, NO person, NO body, NO model, NO wearing, NO mannequin, NO dummy, NO 3d render, NO hands, NO face, NO messy background, NO text, NO watermark. 
-    Commercial e-commerce product photography. An isolated completely empty clothing item hanging neatly on a simple minimalist hanger against a pure solid white background. Front and back views of: ${englishDesignDescription}. Highly detailed fabric texture, studio lighting, photorealistic, 8k resolution, crisp edges.`
-    
-    // Stability API qoida bo'yicha parametrni kutishi mumkin, shuning uchun uni bo'sh qoldiramiz
-    const negativePrompt = ``
+    // ===== STABLE DIFFUSION PROMPT (ILGICH VA STOYKALARSIZ) =====
+    const finalPrompt = `A high-quality, professional 2D flat apparel mockup of a ${productName}. STRICTLY SPLIT-SCREEN LAYOUT: The LEFT side shows the FRONT view, the RIGHT side shows the BACK view. ${englishDesignDescription}. Isolated on a pure solid white background. Invisible mannequin effect, completely empty inside. ABSOLUTELY NO HANGERS, NO WOODEN STANDS, NO POLES, NO PEGS.`;
 
-    const keysEnv = process.env.STABILITY_API_KEYS || process.env.STABILITY_API_KEY || ''
-    const stabilityKeys = keysEnv.split(',').map(k => k.trim()).filter(Boolean)
-    
+    const negativePrompt = `hanger, coat hanger, wooden stand, pole, mannequin, dummy, human, person, body, wearing, single view, folded, shadows, messy background, text, watermark`;
+
+    const keysEnv =
+      process.env.STABILITY_API_KEYS || process.env.STABILITY_API_KEY || "";
+    const stabilityKeys = keysEnv
+      .split(",")
+      .map((k) => k.trim())
+      .filter(Boolean);
+
     if (stabilityKeys.length === 0) {
-      throw createError({ statusCode: 500, message: 'Stability AI kalitlari topilmadi.' })
+      throw createError({
+        statusCode: 500,
+        message: "Stability AI kalitlari topilmadi.",
+      });
     }
 
-    let generatedImageUrl = ''
-    let lastError = null
+    let generatedImageUrl = "";
+    let lastError = null;
 
     for (let i = 0; i < stabilityKeys.length; i++) {
-      const key = stabilityKeys[i]
+      const key = stabilityKeys[i];
       try {
-        generatedImageUrl = await generateAndUpload(finalPrompt, negativePrompt, key, supabase)
-        break
+        generatedImageUrl = await generateAndUpload(
+          finalPrompt,
+          negativePrompt,
+          key,
+          supabase,
+        );
+        break;
       } catch (err: any) {
-        lastError = err
+        lastError = err;
       }
     }
 
     if (!generatedImageUrl) {
-      throw createError({ statusCode: 500, message: `Stability ishlamadi: ${lastError?.message}` })
+      throw createError({
+        statusCode: 500,
+        message: `Stability ishlamadi: ${lastError?.message}`,
+      });
     }
 
-    return { 
+    return {
       success: true,
       frontImage: generatedImageUrl,
       prompt: finalPrompt,
-      translatedPrompt: englishDesignDescription
-    }
-
+      translatedPrompt: englishDesignDescription,
+    };
   } catch (error: any) {
-    throw createError({ 
-      statusCode: error.statusCode || 500, 
-      message: error.message || 'Dizayn yaratishda xatolik yuz berdi' 
-    })
+    throw createError({
+      statusCode: error.statusCode || 500,
+      message: error.message || "Dizayn yaratishda xatolik yuz berdi",
+    });
   }
-})
+});
