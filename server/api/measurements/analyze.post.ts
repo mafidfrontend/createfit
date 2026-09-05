@@ -3,8 +3,8 @@ import { GoogleGenAI, Type } from '@google/genai'
 export default defineEventHandler(async (event) => {
   try {
     const body = await readBody(event)
-    // Frontenddan yuborilgan userHeight ni ham qabul qilamiz
-    const { frontImageBase64, frontImageMime, sideImageBase64, sideImageMime, productType, userHeight } = body
+    // userPhoneModel qabul qilinadi
+    const { frontImageBase64, frontImageMime, sideImageBase64, sideImageMime, productType, userHeight, userPhoneModel } = body
 
     if (!frontImageBase64 || !sideImageBase64) {
       throw createError({ statusCode: 400, message: "Old va yon tomon rasmlari to'liq yuklanmadi" })
@@ -21,7 +21,7 @@ export default defineEventHandler(async (event) => {
 
     const ai = new GoogleGenAI({ apiKey })
 
-    // PROMPT YANGILANDI: Bo'y va A4 qog'oz etalon (masshtab) sifatida belgilandi!
+    // PROMPT YANGILANDI: Telefon modeli va linza haqida ma'lumot qo'shildi
     const prompt = `
 You are an expert tailor and apparel production manager.
 
@@ -30,7 +30,8 @@ Product type: ${productType || 'apparel'}
 
 CRITICAL CALIBRATION DATA: 
 1. The absolute exact height of the user in the image is ${userHeight || 170} cm. Use this total height to establish your pixel-to-centimeter scale perfectly.
-2. The user might be holding a standard A4 paper (which is exactly 21cm x 29.7cm). If visible, use the paper as an additional secondary scale reference.
+2. The photos were taken using a ${userPhoneModel || 'smartphone'} camera. Please carefully account for any potential camera lens distortion, perspective warping, or focal length characteristics typical for this specific device when calculating body proportions.
+3. The user might be holding a standard A4 paper (which is exactly 21cm x 29.7cm). If visible, use the paper as an additional secondary scale reference.
 
 Estimate realistic proportional body dimensions in centimeters based ONLY on the visible characteristics in both profiles, mapped against the height of ${userHeight || 170} cm. 
 
@@ -84,9 +85,7 @@ IMPORTANT:
     const resultText = response.text
     if (!resultText) throw new Error('Gemini bo\'sh javob qaytardi')
 
-    console.log('Gemini measurement response:', resultText)
     const dimensions = JSON.parse(resultText)
-
     dimensions.confidence_score = Math.max(0, Math.min(1, dimensions.confidence_score))
 
     return { success: true, dimensions }

@@ -58,12 +58,18 @@
         </div>
 
         <!-- YANNGI: Foydalanuvchining bo'yini so'rash -->
-        <div class="mt-4">
-          <label class="text-xs font-bold text-ink">Ваш рост (в см) *</label>
-          <input v-model="userHeightInput" type="number" placeholder="Например: 175" class="mt-1 w-full rounded-xl border border-line bg-cream px-3 py-3 text-sm outline-none focus:border-sage" />
+        <div class="mt-4 grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs font-bold text-ink">Ваш рост (см) *</label>
+            <input v-model="userHeightInput" type="number" placeholder="Напр: 175" class="mt-1 w-full rounded-xl border border-line bg-cream px-3 py-3 text-sm outline-none focus:border-sage" />
+          </div>
+          <div>
+            <label class="text-xs font-bold text-ink">Модель телефона *</label>
+            <input v-model="userPhoneInput" type="text" placeholder="Напр: iPhone 13" class="mt-1 w-full rounded-xl border border-line bg-cream px-3 py-3 text-sm outline-none focus:border-sage" />
+          </div>
         </div>
 
-        <button class="mt-4 w-full rounded-xl bg-sage px-5 py-3 text-sm font-bold text-white transition hover:bg-[#0a4ad4] disabled:cursor-not-allowed disabled:opacity-50" :disabled="!frontPhotoPreview || !sidePhotoPreview || !userHeightInput || analyzing" @click="analyzePhoto">
+        <button class="mt-4 w-full rounded-xl bg-sage px-5 py-3 text-sm font-bold text-white transition hover:bg-[#0a4ad4] disabled:cursor-not-allowed disabled:opacity-50" :disabled="!frontPhotoPreview || !sidePhotoPreview || !userHeightInput || !userPhoneInput || analyzing" @click="analyzePhoto">
           <span v-if="analyzing" class="flex items-center justify-center gap-2">
             <svg class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" /><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
             AI анализирует мерки...
@@ -121,6 +127,7 @@ const sidePhotoMime = ref('')
 
 const userHeightInput = ref('') // YANNGI
 const aiPredictedSize = ref('') // YANNGI
+const userPhoneInput = ref('')
 
 const analyzing = ref(false)
 const analysisError = ref('')
@@ -183,8 +190,8 @@ function removePhoto(type: 'front' | 'side'): void {
 }
 
 async function analyzePhoto(): Promise<void> {
-  if (!frontPhotoBase64.value || !sidePhotoBase64.value || !userHeightInput.value) {
-    analysisError.value = 'Загрузите оба фото и укажите свой рост.'
+  if (!frontPhotoBase64.value || !sidePhotoBase64.value || !userHeightInput.value || !userPhoneInput.value) {
+    analysisError.value = 'Загрузите оба фото, укажите рост и модель телефона.'
     return
   }
   
@@ -201,7 +208,8 @@ async function analyzePhoto(): Promise<void> {
         sideImageBase64: sidePhotoBase64.value,
         sideImageMime: sidePhotoMime.value,
         productType: order.draft.product?.name || 'одежда',
-        userHeight: userHeightInput.value // YANNGI: Bo'yni API ga yuboramiz
+        userHeight: userHeightInput.value,
+        userPhoneModel: userPhoneInput.value // YANNGI: API ga yuborish
       }
     })
     

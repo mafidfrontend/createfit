@@ -131,9 +131,11 @@ export default defineEventHandler(async (event) => {
     }
 
     // ===== STABLE DIFFUSION PROMPT (FLAT LAY USLUBI) =====
-    const finalPrompt = `Commercial e-commerce product photography, FLAT LAY style. An isolated clothing item laid perfectly flat on a pure white background. NO PEOPLE, NO MANNEQUINS. Front and back views of: ${englishDesignDescription}. Meticulously arranged flat garment, highly detailed fabric texture, studio lighting, photorealistic, 8k resolution, crisp edges.`
+    const finalPrompt = `NO human, NO person, NO body, NO model, NO wearing, NO mannequin, NO dummy, NO 3d render, NO hands, NO face, NO messy background, NO text, NO watermark. 
+    Commercial e-commerce product photography. An isolated completely empty clothing item hanging neatly on a simple minimalist hanger against a pure solid white background. Front and back views of: ${englishDesignDescription}. Highly detailed fabric texture, studio lighting, photorealistic, 8k resolution, crisp edges.`
     
-    const negativePrompt = `human, person, body, model, wearing, mannequin, dummy, 3d render, hands, face, floating, hanging, wrinkled, messy background, text, watermark`
+    // Stability API qoida bo'yicha parametrni kutishi mumkin, shuning uchun uni bo'sh qoldiramiz
+    const negativePrompt = ``
 
     const keysEnv = process.env.STABILITY_API_KEYS || process.env.STABILITY_API_KEY || ''
     const stabilityKeys = keysEnv.split(',').map(k => k.trim()).filter(Boolean)
