@@ -16,9 +16,18 @@
         </button>
       </div>
       
-      <!-- 2 ta rasm yuklash oynasi (faqat ochilganda ko'rinadi) -->
+      <!-- 2 ta rasm yuklash oynasi -->
       <div v-if="showPhotoUpload" class="mt-4">
-        <p class="text-xs leading-5 text-ink/55">Загрузите 2 фото (спереди и сбоку) в полный рост. AI автоматически заполнит мерки ниже.</p>
+        
+        <!-- YANNGI: Yo'riqnoma va A4 qog'oz haqida eslatma -->
+        <div class="mb-4 rounded-xl bg-sage/5 p-3">
+          <p class="text-xs font-bold text-sage">Как сделать правильное фото?</p>
+          <ul class="mt-2 space-y-1 text-xs text-ink/70">
+            <li>1. Встаньте прямо, камера на уровне груди.</li>
+            <li>2. Одежда должна быть облегающей.</li>
+            <li>3. <b>Важно:</b> Держите в руках обычный лист А4 — он нужен AI для точного масштаба.</li>
+          </ul>
+        </div>
         
         <div class="mt-3 grid grid-cols-2 gap-3">
           <!-- 1. Foto sredi -->
@@ -29,7 +38,7 @@
               <input class="hidden" type="file" accept="image/jpeg,image/png,image/webp" @change="(e) => handlePhoto(e, 'front')">
             </label>
             <div v-else class="relative overflow-hidden rounded-2xl border border-line bg-white">
-              <img :src="frontPhotoPreview" alt="Спереди" class="h-28 w-full object-cover" />
+              <img :src="frontPhotoPreview" alt="Спереди" class="h-32 w-full object-cover" />
               <button class="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-ink/70 text-[10px] font-bold text-white backdrop-blur" @click="removePhoto('front')">✕</button>
             </div>
           </div>
@@ -42,13 +51,19 @@
               <input class="hidden" type="file" accept="image/jpeg,image/png,image/webp" @change="(e) => handlePhoto(e, 'side')">
             </label>
             <div v-else class="relative overflow-hidden rounded-2xl border border-line bg-white">
-              <img :src="sidePhotoPreview" alt="Сбоку" class="h-28 w-full object-cover" />
+              <img :src="sidePhotoPreview" alt="Сбоку" class="h-32 w-full object-cover" />
               <button class="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-ink/70 text-[10px] font-bold text-white backdrop-blur" @click="removePhoto('side')">✕</button>
             </div>
           </div>
         </div>
 
-        <button class="mt-3 w-full rounded-xl bg-sage px-5 py-3 text-sm font-bold text-white transition hover:bg-[#0a4ad4] disabled:cursor-not-allowed disabled:opacity-50" :disabled="!frontPhotoPreview || !sidePhotoPreview || analyzing" @click="analyzePhoto">
+        <!-- YANNGI: Foydalanuvchining bo'yini so'rash -->
+        <div class="mt-4">
+          <label class="text-xs font-bold text-ink">Ваш рост (в см) *</label>
+          <input v-model="userHeightInput" type="number" placeholder="Например: 175" class="mt-1 w-full rounded-xl border border-line bg-cream px-3 py-3 text-sm outline-none focus:border-sage" />
+        </div>
+
+        <button class="mt-4 w-full rounded-xl bg-sage px-5 py-3 text-sm font-bold text-white transition hover:bg-[#0a4ad4] disabled:cursor-not-allowed disabled:opacity-50" :disabled="!frontPhotoPreview || !sidePhotoPreview || !userHeightInput || analyzing" @click="analyzePhoto">
           <span v-if="analyzing" class="flex items-center justify-center gap-2">
             <svg class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" /><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
             AI анализирует мерки...
@@ -57,7 +72,12 @@
         </button>
 
         <p v-if="analysisError" class="mt-2 text-xs text-terracotta">{{ analysisError }}</p>
-        <p v-if="successMessage" class="mt-2 text-xs font-bold text-sage">{{ successMessage }}</p>
+        
+        <!-- YANNGI: Standart razmerni yirik qilib ko'rsatish -->
+        <div v-if="aiPredictedSize" class="mt-3 rounded-xl bg-sage px-4 py-3 text-center text-white">
+          <p class="text-xs opacity-80">Рекомендуемый размер</p>
+          <p class="text-xl font-bold">{{ aiPredictedSize }}</p>
+        </div>
       </div>
     </div>
 
@@ -99,9 +119,11 @@ const sidePhotoPreview = ref('')
 const sidePhotoBase64 = ref('')
 const sidePhotoMime = ref('')
 
+const userHeightInput = ref('') // YANNGI
+const aiPredictedSize = ref('') // YANNGI
+
 const analyzing = ref(false)
 const analysisError = ref('')
-const successMessage = ref('')
 const isAiFilled = ref(false)
 
 const measurementFields: { key: keyof CustomMeasurements; label: string }[] = [
@@ -116,6 +138,7 @@ const measurements = reactive<CustomMeasurements>({ height: '', chest: '', waist
 
 function selectStandard(size: string): void {
   isAiFilled.value = false
+  aiPredictedSize.value = ''
   order.setSize({ type: 'standard', standardSize: size, customMeasurements: null })
 }
 
@@ -129,7 +152,7 @@ function handlePhoto(event: Event, type: 'front' | 'side'): void {
   }
   
   analysisError.value = ''
-  successMessage.value = ''
+  aiPredictedSize.value = ''
   
   const reader = new FileReader()
   reader.onload = () => {
@@ -160,14 +183,14 @@ function removePhoto(type: 'front' | 'side'): void {
 }
 
 async function analyzePhoto(): Promise<void> {
-  if (!frontPhotoBase64.value || !sidePhotoBase64.value) {
-    analysisError.value = 'Пожалуйста, загрузите оба фото (спереди и сбоку)'
+  if (!frontPhotoBase64.value || !sidePhotoBase64.value || !userHeightInput.value) {
+    analysisError.value = 'Загрузите оба фото и укажите свой рост.'
     return
   }
   
   analyzing.value = true
   analysisError.value = ''
-  successMessage.value = ''
+  aiPredictedSize.value = ''
   
   try {
     const response = await $fetch<{ success: boolean, dimensions: any }>('/api/measurements/analyze', {
@@ -177,34 +200,34 @@ async function analyzePhoto(): Promise<void> {
         frontImageMime: frontPhotoMime.value,
         sideImageBase64: sidePhotoBase64.value,
         sideImageMime: sidePhotoMime.value,
-        productType: order.draft.product?.name || 'одежда' 
+        productType: order.draft.product?.name || 'одежда',
+        userHeight: userHeightInput.value // YANNGI: Bo'yni API ga yuboramiz
       }
     })
     
     if (response.success && response.dimensions) {
       const dim = response.dimensions
       
-      // Natijalarni to'g'ridan-to'g'ri input maydonlariga yozamiz
-      measurements.height = dim.length_cm ? String(dim.length_cm) : ''
+      measurements.height = String(userHeightInput.value)
       measurements.chest = dim.chest_cm ? String(dim.chest_cm) : ''
       measurements.waist = dim.waist_cm ? String(dim.waist_cm) : ''
       measurements.hips = dim.hips_cm ? String(dim.hips_cm) : ''
       measurements.sleeve = dim.sleeve_cm ? String(dim.sleeve_cm) : ''
+      measurements.length = dim.length_cm ? String(dim.length_cm) : ''
       
       isAiFilled.value = true
-      successMessage.value = 'Мерки успешно рассчитаны и заполнены!'
+      aiPredictedSize.value = dim.predicted_size || 'M'
 
-      // Order store'ga custom o'lcham sifatida saqlab qo'yamiz
       order.setSize({
-        type: 'custom',
-        standardSize: null,
+        type: 'standard',
+        standardSize: aiPredictedSize.value,
         customMeasurements: { ...measurements },
         aiEstimated: true,
         aiConfidence: dim.confidence_score ? Math.round(dim.confidence_score * 100) : 92
       })
     }
   } catch (err: any) {
-    analysisError.value = err.message || 'Не удалось проанализировать фото. Попробуйте другое изображение.'
+    analysisError.value = err.message || 'Не удалось проанализировать фото. Попробуйте еще раз.'
   } finally {
     analyzing.value = false
   }
@@ -214,7 +237,7 @@ function onManualInput(): void {
   isAiFilled.value = false
   order.setSize({
     type: 'custom',
-    standardSize: null,
+    standardSize: aiPredictedSize.value || null,
     customMeasurements: { ...measurements }
   })
 }
