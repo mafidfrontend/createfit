@@ -3,7 +3,6 @@ import { GoogleGenAI, Type } from '@google/genai'
 export default defineEventHandler(async (event) => {
   try {
     const body = await readBody(event)
-    // userPhoneModel qabul qilinadi
     const { frontImageBase64, frontImageMime, sideImageBase64, sideImageMime, productType, userHeight, userPhoneModel } = body
 
     if (!frontImageBase64 || !sideImageBase64) {
@@ -21,7 +20,27 @@ export default defineEventHandler(async (event) => {
 
     const ai = new GoogleGenAI({ apiKey })
 
-    // PROMPT YANGILANDI: Telefon modeli va linza haqida ma'lumot qo'shildi
+    // Jadvallarni shartli ravishda qo'shish logikasi (Kelajakda bolalar, ayollar kiyimi uchun kengaytirish oson)
+    const isTshirt = productType?.toLowerCase().includes('футболка') || productType?.toLowerCase().includes('tee')
+    
+    const sizeChartInstructions = isTshirt ? `
+CRITICAL CALCULATION LOGIC (ANTONINA'S T-SHIRT SIZE CHART):
+You must use the following standard chart to determine the final size and garment length.
+- Body Chest ~88cm -> Size: "XS", Garment Length: 65cm
+- Body Chest ~92cm -> Size: "S", Garment Length: 66cm
+- Body Chest ~96cm -> Size: "M", Garment Length: 67.5cm
+- Body Chest ~100cm -> Size: "L", Garment Length: 69cm
+- Body Chest ~104cm -> Size: "XL", Garment Length: 71cm
+- Body Chest ~108cm -> Size: "2XL", Garment Length: 72cm
+- Body Chest ~112cm -> Size: "3XL", Garment Length: 73cm
+- Body Chest ~116cm -> Size: "4XL", Garment Length: 74cm
+
+HOW TO APPLY THE CHART:
+1. First, accurately estimate the user's actual body chest circumference (chest_cm).
+2. Find the closest matching "Body Chest" in the chart above to determine the "predicted_size" (e.g., if chest is 101cm, pick "L").
+3. Set the "length_cm" EXACTLY to the "Garment Length" specified in the matched row. Do NOT estimate the user's physical back length, output the required garment length!
+` : ''
+
     const prompt = `
 You are an expert tailor and apparel production manager.
 
@@ -33,9 +52,11 @@ CRITICAL CALIBRATION DATA:
 2. The photos were taken using a ${userPhoneModel || 'smartphone'} camera. Please carefully account for any potential camera lens distortion, perspective warping, or focal length characteristics typical for this specific device when calculating body proportions.
 3. The user might be holding a standard A4 paper (which is exactly 21cm x 29.7cm). If visible, use the paper as an additional secondary scale reference.
 
+${sizeChartInstructions}
+
 Estimate realistic proportional body dimensions in centimeters based ONLY on the visible characteristics in both profiles, mapped against the height of ${userHeight || 170} cm. 
 
-Additionally, determine the most appropriate standard international size (XS, S, M, L, XL, XXL) for this user based on their measurements.
+Additionally, determine the most appropriate standard international size (XS, S, M, L, XL, 2XL, 3XL, 4XL) for this user based on their measurements.
 
 IMPORTANT:
 - Return realistic, anatomically correct production-oriented values.
@@ -59,11 +80,11 @@ IMPORTANT:
         responseSchema: {
           type: Type.OBJECT,
           properties: {
-            predicted_size: { type: Type.STRING, description: 'Estimated standard international size (e.g., XS, S, M, L, XL, XXL)' },
-            chest_cm: { type: Type.NUMBER, description: 'Estimated chest measurement in centimeters' },
+            predicted_size: { type: Type.STRING, description: 'Estimated standard size based on the provided chart (e.g., XS, S, M, L, XL)' },
+            chest_cm: { type: Type.NUMBER, description: 'Estimated body chest measurement in centimeters' },
             waist_cm: { type: Type.NUMBER, description: 'Estimated waist measurement in centimeters' },
             hips_cm: { type: Type.NUMBER, description: 'Estimated hips measurement in centimeters' },
-            length_cm: { type: Type.NUMBER, description: 'Estimated garment length in centimeters' },
+            length_cm: { type: Type.NUMBER, description: 'Garment length in centimeters (from the size chart)' },
             shoulder_cm: { type: Type.NUMBER, description: 'Estimated shoulder width in centimeters' },
             sleeve_cm: { type: Type.NUMBER, description: 'Estimated sleeve length in centimeters' },
             confidence_score: { type: Type.NUMBER, description: 'Confidence score between 0 and 1' },

@@ -16,17 +16,17 @@
         </button>
       </div>
       
-      <!-- 2 ta rasm yuklash oynasi -->
+      <!-- AI Rasm yuklash va kiritish bloki -->
       <div v-if="showPhotoUpload" class="mt-4">
         
-        <!-- YANNGI: Yo'riqnoma va A4 qog'oz haqida eslatma -->
-        <div class="mb-4 rounded-xl bg-sage/5 p-3">
-          <p class="text-xs font-bold text-sage">Как сделать правильное фото?</p>
-          <ul class="mt-2 space-y-1 text-xs text-ink/70">
-            <li>1. Встаньте прямо, камера на уровне груди.</li>
-            <li>2. Одежда должна быть облегающей.</li>
-            <li>3. <b>Важно:</b> Держите в руках обычный лист А4 — он нужен AI для точного масштаба.</li>
-          </ul>
+        <!-- Yo'riqnoma (Antonina xohlagan qism) -->
+        <div class="mb-4 rounded-xl bg-mint/50 p-3 text-xs leading-5 text-ink/75">
+          <p class="mb-1 font-bold text-sage">Как сделать правильное фото?</p>
+          <ol class="list-decimal pl-4">
+            <li>Встаньте прямо, камера на уровне груди.</li>
+            <li>Одежда должна быть облегающей.</li>
+            <li><b>Важно:</b> Держите в руках обычный лист А4 — он нужен AI для точного масштаба.</li>
+          </ol>
         </div>
         
         <div class="mt-3 grid grid-cols-2 gap-3">
@@ -57,32 +57,34 @@
           </div>
         </div>
 
-        <!-- YANNGI: Foydalanuvchining bo'yini so'rash -->
+        <!-- Bo'y va Telefon modelini kiritish (Antonina xohlagan qism) -->
         <div class="mt-4 grid grid-cols-2 gap-3">
-          <div>
-            <label class="text-xs font-bold text-ink">Ваш рост (см) *</label>
-            <input v-model="userHeightInput" type="number" placeholder="Напр: 175" class="mt-1 w-full rounded-xl border border-line bg-cream px-3 py-3 text-sm outline-none focus:border-sage" />
-          </div>
-          <div>
-            <label class="text-xs font-bold text-ink">Модель телефона *</label>
-            <input v-model="userPhoneInput" type="text" placeholder="Напр: iPhone 13" class="mt-1 w-full rounded-xl border border-line bg-cream px-3 py-3 text-sm outline-none focus:border-sage" />
-          </div>
+          <label class="text-xs font-semibold text-ink/55">
+            Ваш рост (см) *
+            <input v-model="userHeight" type="number" placeholder="170" class="mt-1.5 w-full rounded-xl border border-line bg-cream px-3 py-2.5 text-sm text-ink outline-none focus:border-sage" />
+          </label>
+          <label class="text-xs font-semibold text-ink/55">
+            Модель телефона *
+            <input v-model="userPhoneModel" type="text" placeholder="Айфон 15" class="mt-1.5 w-full rounded-xl border border-line bg-cream px-3 py-2.5 text-sm text-ink outline-none focus:border-sage" />
+          </label>
         </div>
 
-        <button class="mt-4 w-full rounded-xl bg-sage px-5 py-3 text-sm font-bold text-white transition hover:bg-[#0a4ad4] disabled:cursor-not-allowed disabled:opacity-50" :disabled="!frontPhotoPreview || !sidePhotoPreview || !userHeightInput || !userPhoneInput || analyzing" @click="analyzePhoto">
+        <!-- Hisoblash tugmasi -->
+        <button class="mt-4 w-full rounded-xl bg-sage px-5 py-3 text-sm font-bold text-white transition hover:bg-[#0a4ad4] disabled:cursor-not-allowed disabled:opacity-50" :disabled="!frontPhotoPreview || !sidePhotoPreview || !userHeight || !userPhoneModel || analyzing" @click="analyzePhoto">
           <span v-if="analyzing" class="flex items-center justify-center gap-2">
             <svg class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" /><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
-            AI анализирует мерки...
+            AI анализирует...
           </span>
           <span v-else>Рассчитать по фото</span>
         </button>
 
-        <p v-if="analysisError" class="mt-2 text-xs text-terracotta">{{ analysisError }}</p>
-        
-        <!-- YANNGI: Standart razmerni yirik qilib ko'rsatish -->
-        <div v-if="aiPredictedSize" class="mt-3 rounded-xl bg-sage px-4 py-3 text-center text-white">
-          <p class="text-xs opacity-80">Рекомендуемый размер</p>
-          <p class="text-xl font-bold">{{ aiPredictedSize }}</p>
+        <p v-if="analysisError" class="mt-2 text-center text-xs font-medium text-terracotta">{{ analysisError }}</p>
+
+        <!-- Katta qilib razmerni ko'rsatish (Antonina xohlagan qism) -->
+        <div v-if="predictedSizeResult" class="mt-4 rounded-xl bg-[#0a4ad4] p-4 text-center text-white shadow-md">
+          <p class="text-xs font-medium opacity-80">Рекомендуемый размер</p>
+          <p class="mt-1 text-3xl font-black">{{ predictedSizeResult }}</p>
+          <p class="mt-1 text-[10px] opacity-70">Мерки заполнены ниже</p>
         </div>
       </div>
     </div>
@@ -117,35 +119,35 @@ const order = useOrderStore()
 const error = ref('')
 const showPhotoUpload = ref(false)
 
+// AI form state
 const frontPhotoPreview = ref('')
 const frontPhotoBase64 = ref('')
 const frontPhotoMime = ref('')
-
 const sidePhotoPreview = ref('')
 const sidePhotoBase64 = ref('')
 const sidePhotoMime = ref('')
+const userHeight = ref('')
+const userPhoneModel = ref('')
 
-const userHeightInput = ref('') // YANNGI
-const aiPredictedSize = ref('') // YANNGI
-const userPhoneInput = ref('')
-
+// Analysis state
 const analyzing = ref(false)
 const analysisError = ref('')
 const isAiFilled = ref(false)
+const predictedSizeResult = ref('')
 
 const measurementFields: { key: keyof CustomMeasurements; label: string }[] = [
-  { key: 'height', label: 'Рост / Длина' },
   { key: 'chest', label: 'Грудь' },
+  { key: 'length', label: 'Длина изделия' },
   { key: 'waist', label: 'Талия' },
   { key: 'hips', label: 'Бёдра' },
-  { key: 'length', label: 'Длина изделия' },
+  { key: 'shoulder', label: 'Плечо' },
   { key: 'sleeve', label: 'Длина рукава' }
 ]
-const measurements = reactive<CustomMeasurements>({ height: '', chest: '', waist: '', hips: '', length: '', sleeve: '', other: '' })
+const measurements = reactive<CustomMeasurements>({ height: '', chest: '', waist: '', hips: '', length: '', sleeve: '', shoulder: '', other: '' })
 
 function selectStandard(size: string): void {
   isAiFilled.value = false
-  aiPredictedSize.value = ''
+  predictedSizeResult.value = ''
   order.setSize({ type: 'standard', standardSize: size, customMeasurements: null })
 }
 
@@ -159,7 +161,7 @@ function handlePhoto(event: Event, type: 'front' | 'side'): void {
   }
   
   analysisError.value = ''
-  aiPredictedSize.value = ''
+  predictedSizeResult.value = ''
   
   const reader = new FileReader()
   reader.onload = () => {
@@ -187,17 +189,22 @@ function removePhoto(type: 'front' | 'side'): void {
     sidePhotoMime.value = ''
   }
   analysisError.value = ''
+  predictedSizeResult.value = ''
 }
 
 async function analyzePhoto(): Promise<void> {
-  if (!frontPhotoBase64.value || !sidePhotoBase64.value || !userHeightInput.value || !userPhoneInput.value) {
-    analysisError.value = 'Загрузите оба фото, укажите рост и модель телефона.'
+  if (!frontPhotoBase64.value || !sidePhotoBase64.value) {
+    analysisError.value = 'Загрузите оба фото'
+    return
+  }
+  if (!userHeight.value || !userPhoneModel.value) {
+    analysisError.value = 'Укажите рост и модель телефона'
     return
   }
   
   analyzing.value = true
   analysisError.value = ''
-  aiPredictedSize.value = ''
+  predictedSizeResult.value = ''
   
   try {
     const response = await $fetch<{ success: boolean, dimensions: any }>('/api/measurements/analyze', {
@@ -207,35 +214,39 @@ async function analyzePhoto(): Promise<void> {
         frontImageMime: frontPhotoMime.value,
         sideImageBase64: sidePhotoBase64.value,
         sideImageMime: sidePhotoMime.value,
-        productType: order.draft.product?.name || 'одежда',
-        userHeight: userHeightInput.value,
-        userPhoneModel: userPhoneInput.value // YANNGI: API ga yuborish
+        productType: order.draft.product?.name || 'Футболка', 
+        userHeight: Number(userHeight.value),
+        userPhoneModel: userPhoneModel.value
       }
     })
     
     if (response.success && response.dimensions) {
       const dim = response.dimensions
       
-      measurements.height = String(userHeightInput.value)
+      // Antoninaning jadvallaridagi natijalarni UI ga yozamiz
+      measurements.length = dim.length_cm ? String(dim.length_cm) : '' // Dlina izdeliya
       measurements.chest = dim.chest_cm ? String(dim.chest_cm) : ''
       measurements.waist = dim.waist_cm ? String(dim.waist_cm) : ''
       measurements.hips = dim.hips_cm ? String(dim.hips_cm) : ''
       measurements.sleeve = dim.sleeve_cm ? String(dim.sleeve_cm) : ''
-      measurements.length = dim.length_cm ? String(dim.length_cm) : ''
+      measurements.shoulder = dim.shoulder_cm ? String(dim.shoulder_cm) : ''
       
       isAiFilled.value = true
-      aiPredictedSize.value = dim.predicted_size || 'M'
+      
+      // Xuddi Antonina chizgandek, razmerni katta qilib chiqaramiz
+      const finalSize = dim.predicted_size || 'Индивидуальный'
+      predictedSizeResult.value = finalSize
 
       order.setSize({
-        type: 'standard',
-        standardSize: aiPredictedSize.value,
+        type: 'custom',
+        standardSize: finalSize,
         customMeasurements: { ...measurements },
         aiEstimated: true,
         aiConfidence: dim.confidence_score ? Math.round(dim.confidence_score * 100) : 92
       })
     }
   } catch (err: any) {
-    analysisError.value = err.message || 'Не удалось проанализировать фото. Попробуйте еще раз.'
+    analysisError.value = err.message || 'Ошибка анализа. Попробуйте еще раз.'
   } finally {
     analyzing.value = false
   }
@@ -245,7 +256,7 @@ function onManualInput(): void {
   isAiFilled.value = false
   order.setSize({
     type: 'custom',
-    standardSize: aiPredictedSize.value || null,
+    standardSize: predictedSizeResult.value || null,
     customMeasurements: { ...measurements }
   })
 }
