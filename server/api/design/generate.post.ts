@@ -164,9 +164,11 @@ export default defineEventHandler(async (event) => {
     }
 
     // ===== STABLE DIFFUSION PROMPT (ILGICH VA STOYKALARSIZ) =====
-    const finalPrompt = `A high-quality, professional 2D flat apparel mockup of a ${productName}. STRICTLY SPLIT-SCREEN LAYOUT: The LEFT side shows the FRONT view, the RIGHT side shows the BACK view. ${englishDesignDescription}. Isolated on a pure solid white background. Invisible mannequin effect, completely empty inside. ABSOLUTELY NO HANGERS, NO WOODEN STANDS, NO POLES, NO PEGS.`;
+       // ===== STABLE DIFFUSION PROMPT (KOLAJ VA ILGICHLARSIZ) =====
+    const finalPrompt = `Professional e-commerce product mockup of a single ${productName}, two views displayed side by side: left is front view, right is back view. ${englishDesignDescription}. Flat-lay style, completely empty garment, seamless pure white background, studio catalog lighting, highly detailed fabric texture, photorealistic, 8k resolution. STRICTLY NO HANGERS, NO STANDS, NO HUMANS.`
+    
+    const negativePrompt = `grid, 4 images, collage, multiple items, quadruplicate, split into four, hanger, coat hanger, wooden stand, mannequin, dummy, human, person, model, shadows, 3d render`
 
-    const negativePrompt = `hanger, coat hanger, wooden stand, pole, mannequin, dummy, human, person, body, wearing, single view, folded, shadows, messy background, text, watermark`;
 
     const keysEnv =
       process.env.STABILITY_API_KEYS || process.env.STABILITY_API_KEY || "";
