@@ -49,7 +49,7 @@ async function generateAndUpload(
   return publicUrlData.publicUrl;
 }
 
-// ===== GEMINI QAYTA URINISH FUNKSIYASI (YANGI SDK BILAN) =====
+// ===== GEMINI QAYTA URINISH FUNKSIYASI =====
 async function callGeminiWithRetry(
   geminiApiKey: string,
   promptText: string,
@@ -59,7 +59,6 @@ async function callGeminiWithRetry(
     throw new Error("Gemini API kaliti topilmadi");
   }
 
-  // Yangi rasmiy SDK ni ishga tushiramiz
   const ai = new GoogleGenAI({ apiKey: geminiApiKey });
   let lastError = null;
 
@@ -69,7 +68,6 @@ async function callGeminiWithRetry(
         `Gemini (3.8-flash) so'rovi: urinish ${attempt}/${maxRetries}`,
       );
 
-      // AI Studio hujjatlaridagi aynan o'sha sintaksis
       const interaction = await ai.interactions.create({
         model: "gemini-3.8-flash",
         input: promptText,
@@ -86,19 +84,14 @@ async function callGeminiWithRetry(
     } catch (error: any) {
       lastError = error;
       const errorMessage = error.message || "";
-
       const isAuthError =
         errorMessage.includes("key") ||
         errorMessage.includes("auth") ||
         errorMessage.includes("403");
-      if (isAuthError) {
+      if (isAuthError)
         throw new Error(`Gemini autentifikatsiya xatosi: ${errorMessage}`);
-      }
-
       if (attempt === maxRetries) break;
-
       const waitTime = Math.min(1000 * Math.pow(2, attempt - 1), 8000);
-      console.warn(`Gemini xatosi (${errorMessage}): ${waitTime}ms kutish...`);
       await new Promise((resolve) => setTimeout(resolve, waitTime));
     }
   }
@@ -131,42 +124,58 @@ export default defineEventHandler(async (event) => {
     const geminiApiKey =
       process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
 
+    // ===== 1. GEMINI SANITAR-PROMPT (Odamlarni yo'qotish va kiyimni majburlash) =====
     if (geminiApiKey) {
       try {
-        let geminiInstruction = `Act as an expert AI prompt engineer. Translate and enhance the user's Russian clothing design description into a highly detailed English prompt for Stable Diffusion. 
-        IMPORTANT RULE: If the user explicitly mentions colors or patterns in their description (like "адрас", "красно-розовых"), you MUST prioritize those over the default color (${color}) and style (${style}). 
-        Translate "адрас" or "икат" as "traditional Central Asian ikat/adras pattern".
-        
-        User description: ${prompt}.
-        Return ONLY the enhanced English description, nothing else.`;
+        let geminiInstruction = `Act as an expert AI prompt engineer and content sanitizer. 
+        Translate the user's Russian clothing design description into a highly detailed English prompt for Stable Diffusion.
 
-        // Agar rasm ham yuborilgan bo'lsa, uni URL sifatida matnga qo'shamiz (yangi SDK uchun eng xavfsiz usul)
+        CRITICAL RULES YOU MUST FOLLOW:
+        1. SANITIZE: REMOVE ANY AND ALL mentions of people, humans, models, girls, boys, faces, or bodies from the translation. The image MUST be of an empty garment.
+        2. GARMENT LOCK: The user selected a "${productName}". If it's a T-shirt, force words like "short sleeves", "t-shirt". NEVER allow words like "long sleeves", "hoodie", "sweatshirt", "sweater" even if the user typed them.
+        3. If the user mentions "адрас" or "икат", translate as "traditional Central Asian ikat/adras pattern".
+        4. If the user mentions colors/patterns, prioritize them over default values.
+
+        User description: ${prompt}.
+        Return ONLY the clean, enhanced English description. NO conversational text.`;
+
         if (uploadedImageUrl) {
           geminiInstruction += `\n\nPlease also consider the visual style of this reference image: ${uploadedImageUrl}`;
         }
 
-        // Yangi SDK orqali tarjima qilish
         const translatedText = await callGeminiWithRetry(
           geminiApiKey,
           geminiInstruction,
           3,
         );
-
         if (translatedText && translatedText.trim().length > 0) {
           englishDesignDescription = translatedText.trim();
         }
       } catch (geminiError: any) {
-        console.error(
-          "Gemini xatosi (default ishlatiladi):",
-          geminiError.message,
-        );
+        console.error("Gemini xatosi:", geminiError.message);
       }
     }
 
-    // ===== STABLE DIFFUSION PROMPT (ILGICH VA STOYKALARSIZ) =====
-    const finalPrompt = `A high-quality, professional 2D flat apparel mockup of a ${productName}. STRICTLY SPLIT-SCREEN LAYOUT: The LEFT side shows the FRONT view, the RIGHT side shows the BACK view. ${englishDesignDescription}. Isolated on a pure solid white background. Invisible mannequin effect, completely empty inside. ABSOLUTELY NO HANGERS, NO WOODEN STANDS, NO POLES, NO PEGS.`;
+    // ===== 2. MATOGA QARAB MANTIQ (Antonina qoidasi) =====
+    const isCotton =
+      fabric?.toLowerCase().includes("хлопок") ||
+      fabric?.toLowerCase().includes("хб");
+    const printStyleInstruction = isCotton
+      ? "Design requirement: Place the design ONLY as a small, neat logo strictly on the left chest area. The rest of the garment MUST remain completely blank and plain."
+      : "Design requirement: Create a seamless ALL-OVER print. The design and pattern MUST cover the entire fabric of the garment completely from edge to edge.";
 
-    const negativePrompt = `hanger, coat hanger, wooden stand, pole, mannequin, dummy, human, person, body, wearing, single view, folded, shadows, messy background, text, watermark`;
+    // ===== 3. FUTBOLKANI MAJBURLASH (Longsleeve bo'lib ketmasligi uchun) =====
+    const isTshirt =
+      productName?.toLowerCase().includes("футболка") ||
+      productName?.toLowerCase().includes("t-shirt");
+    const sleeveInstruction = isTshirt
+      ? "SHORT SLEEVES ONLY, strictly a t-shirt shape, NO long sleeves."
+      : "";
+
+    // ===== 4. YAKUNIY STABILITY PROMPT =====
+    const finalPrompt = `Professional e-commerce product mockup of a single ${productName}. ${sleeveInstruction} STRICTLY SPLIT-SCREEN LAYOUT: The LEFT side shows the FRONT view, the RIGHT side shows the BACK view. ${englishDesignDescription}. ${printStyleInstruction} Flat-lay style, completely empty garment, seamless pure white background, studio catalog lighting, highly detailed fabric texture, photorealistic, 8k resolution. STRICTLY NO HANGERS, NO STANDS, NO HUMANS, NO MODELS, NO FACES, NO BODY PARTS.`;
+
+    const negativePrompt = `grid, 4 images, collage, multiple items, quadruplicate, split into four, hanger, coat hanger, wooden stand, pole, mannequin, dummy, human, person, model, girl, boy, face, wearing, single view, folded, shadows, messy background, text, watermark, 3d render, long sleeves`;
 
     const keysEnv =
       process.env.STABILITY_API_KEYS || process.env.STABILITY_API_KEY || "";

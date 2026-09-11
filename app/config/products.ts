@@ -42,13 +42,6 @@ export const fabrics: Fabric[] = [
     price: 0
   },
   {
-    id: 'cotton-premium',
-    name: 'Премиум хлопок',
-    description: 'Плотный качественный хлопок',
-    image: '/images/fabrics/cotton-premium.jpg',
-    price: 5
-  },
-  {
     id: 'polyester-sport',
     name: 'Спортивный полиэстер',
     description: 'Влагоотводящий материал',
