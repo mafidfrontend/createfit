@@ -125,6 +125,7 @@ export default defineEventHandler(async (event) => {
       }
     }
 
+<<<<<<< HEAD
     // ===== ANTONINANING ISHLAB CHIQARISH QOIDASI (YANGI) =====
     const isCotton = fabric?.toLowerCase().includes('хлопок') || fabric?.toLowerCase().includes('хб');
     const printStyleInstruction = isCotton 
@@ -133,6 +134,14 @@ export default defineEventHandler(async (event) => {
 
     // ===== STABLE DIFFUSION PROMPT (KOLAJ/ILGICHLARSIZ + MATO MANTIQI) =====
     const finalPrompt = `Professional e-commerce product mockup of a single ${productName}, two views displayed side by side: left is front view, right is back view. ${englishDesignDescription}. ${printStyleInstruction} Flat-lay style, completely empty garment, seamless pure white background, studio catalog lighting, highly detailed fabric texture, photorealistic, 8k resolution. STRICTLY NO HANGERS, NO STANDS, NO HUMANS.`;
+=======
+    // ===== STABLE DIFFUSION PROMPT (ILGICH VA STOYKALARSIZ) =====
+       // ===== STABLE DIFFUSION PROMPT (KOLAJ VA ILGICHLARSIZ) =====
+    const finalPrompt = `Professional e-commerce product mockup of a single ${productName}, two views displayed side by side: left is front view, right is back view. ${englishDesignDescription}. Flat-lay style, completely empty garment, seamless pure white background, studio catalog lighting, highly detailed fabric texture, photorealistic, 8k resolution. STRICTLY NO HANGERS, NO STANDS, NO HUMANS.`
+    
+    const negativePrompt = `grid, 4 images, collage, multiple items, quadruplicate, split into four, hanger, coat hanger, wooden stand, mannequin, dummy, human, person, model, shadows, 3d render`
+
+>>>>>>> 99a2988fbc0ae98dd169017b5e303e0f4c752be5
 
     const negativePrompt = `grid, 4 images, collage, multiple items, quadruplicate, split into four, hanger, coat hanger, wooden stand, pole, mannequin, dummy, human, person, model, shadows, messy background, text, watermark, 3d render`;
 
