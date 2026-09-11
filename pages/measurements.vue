@@ -8,7 +8,7 @@
     </div>
 
     <!-- AI photo analysis & Manual entry combined section -->
-    <div class="mt-4 rounded-2xl border border-line bg-white p-4">
+    <div v-if="order.draft.size?.type !== 'standard'" class="mt-4 rounded-2xl border border-line bg-white p-4">
       <div class="flex items-center justify-between">
         <p class="text-sm font-bold">AI-анализ мерок по фото</p>
         <button class="text-xs font-bold text-sage underline" @click="showPhotoUpload = !showPhotoUpload">
@@ -90,7 +90,7 @@
     </div>
 
     <!-- Manual / AI-populated measurements inputs -->
-    <div class="mt-4 rounded-2xl border border-line bg-white p-4">
+    <div v-if="order.draft.size?.type !== 'standard'" class="mt-4 rounded-2xl border border-line bg-white p-4">
       <div class="mb-4 flex items-center justify-between">
         <p class="text-sm font-bold">Мерки в сантиметрах</p>
         <span v-if="isAiFilled" class="rounded-full bg-mint px-2.5 py-0.5 text-[10px] font-bold text-sage">AI рассчитал ✨</span>
