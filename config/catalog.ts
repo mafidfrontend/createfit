@@ -12,7 +12,6 @@ export const FABRICS: Fabric[] = [
   { id: 'cotton', name: 'Хлопок', additionalPrice: 0, description: 'Дышащий и мягкий материал' },
   { id: 'premium-cotton', name: 'Премиум-хлопок', additionalPrice: 5, description: 'Плотнее, мягче, дольше служит' },
   { id: 'sport', name: 'Спортивная ткань', additionalPrice: 8, description: 'Лёгкая, эластичная, быстро сохнет' },
-  { id: 'fleece', name: 'Флис', additionalPrice: 10, description: 'Тёплый вариант для костюма' }
 ]
 
 export const STANDARD_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL']
