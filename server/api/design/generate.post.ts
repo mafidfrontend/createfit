@@ -173,8 +173,7 @@ export default defineEventHandler(async (event) => {
       : "";
 
     // ===== 4. YAKUNIY STABILITY PROMPT =====
-    const finalPrompt = `Professional e-commerce product mockup of a single ${productName}. ${sleeveInstruction} STRICTLY SPLIT-SCREEN LAYOUT: The LEFT side shows the FRONT view, the RIGHT side shows the BACK view. ${englishDesignDescription}. ${printStyleInstruction} Flat-lay style, completely empty garment, seamless pure white background, studio catalog lighting, highly detailed fabric texture, photorealistic, 8k resolution. STRICTLY NO HANGERS, NO STANDS, NO HUMANS, NO MODELS, NO FACES, NO BODY PARTS.`;
-
+    const finalPrompt = `Pure flat-lay photography of a single ${productName} lying flat on a white table. COMPELTELY EMPTY GARMENT, NOBODY WEARING IT. ${sleeveInstruction} STRICTLY SPLIT-SCREEN LAYOUT: The LEFT side shows the FRONT view, the RIGHT side shows the BACK view. ${englishDesignDescription}. ${printStyleInstruction} Top-down camera angle, flat isolated item on pure white background, highly detailed fabric texture. ABSOLUTELY NO HUMANS, NO MODELS, NO FACES, NO MANNEQUINS, NO NECKS, NO ARMS, NO HANGERS.`;
     const negativePrompt = `grid, 4 images, collage, multiple items, quadruplicate, split into four, hanger, coat hanger, wooden stand, pole, mannequin, dummy, human, person, model, girl, boy, face, wearing, single view, folded, shadows, messy background, text, watermark, 3d render, long sleeves`;
 
     const keysEnv =
