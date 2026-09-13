@@ -172,8 +172,8 @@ export default defineEventHandler(async (event) => {
       ? "SHORT SLEEVES ONLY, strictly a t-shirt shape, NO long sleeves."
       : "";
 
-        // ===== YAKUNIY STABILITY PROMPT =====
-    const finalPrompt = `Retail flat-lay knolling photography. Create a catalog product photograph of the following garment: ${productName}.
+        // ===== YAKUNIY STABILITY PROMPT (KNOLLING OLIB TASHLANDI, FAQAT BITTA KIYIM) =====
+    const finalPrompt = `Create a catalog product photograph of the following garment: ${productName}.
 
 COMPOSITION
 A single horizontal image with two equally sized areas placed side by side, without borders or a dividing line.
@@ -212,8 +212,8 @@ No invisible-person or ghost-mannequin effect.
 No additional angles, close-up details, “front” or “back” labels, borders, or watermarks.
 Text is allowed only when explicitly specified as part of the print.`;
 
-    // ===== JUUDA QAT'IY NEGATIVE PROMPT =====
-    const negativePrompt = `human, person, model, girl, boy, mannequin, dummy, ghost mannequin, body, face, hands, arms, legs, neck, wearing, 3d render, illustration, drawing, wrinkles forming a body, hanger, coat hanger, stand, rack, grid, 4 images, collage, overlapping garments, messy background, text, watermark, long sleeves`;
+    // ===== JUUDA QAT'IY NEGATIVE PROMPT (O'zgarishsiz qoladi) =====
+    const negativePrompt = `human, person, model, girl, boy, mannequin, dummy, ghost mannequin, body, face, hands, arms, legs, neck, wearing, 3d render, illustration, drawing, wrinkles forming a body, hanger, coat hanger, stand, rack, grid, 4 images, collage, overlapping garments, messy background, text, watermark, long sleeves, outfit, multiple items, shoes, pants, sunglasses, watch, accessories`;
     
     const keysEnv =
       process.env.STABILITY_API_KEYS || process.env.STABILITY_API_KEY || "";
