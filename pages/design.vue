@@ -2,10 +2,10 @@
   <div class="slide-up pb-8">
     <StepHeader :step="3" eyebrow="Ткань и дизайн" title="Собери характер" description="Выбери материал и создай свой дизайн." />
 
-    <!-- Fabric selection -->
+        <!-- Fabric selection -->
     <h2 class="mb-3 text-lg font-bold">Ткань</h2>
     <div class="space-y-3">
-      <OptionCard v-for="fabric in FABRICS" :key="fabric.id" :title="fabric.name" :description="fabric.description" :price="fabric.additionalPrice" :selected="order.draft.fabric?.id === fabric.id" @select="order.setFabric(fabric)" />
+      <OptionCard v-for="fabric in availableFabrics" :key="fabric.id" :title="fabric.name" :description="fabric.description" :price="fabric.additionalPrice" :selected="order.draft.fabric?.id === fabric.id" @select="order.setFabric(fabric)" />
     </div>
 
     <!-- Design mode tabs -->
@@ -180,6 +180,18 @@ async function extractDimensionsFromImage(imageUrl: string) {
     extractingDimensions.value = false
   }
 }
+
+// Tanlangan mahsulot futbolka bo'lsa, "Премиум хлопок"ni yashirish
+const availableFabrics = computed(() => {
+  const isTshirt = order.draft.product?.name.toLowerCase().includes('футболка') || 
+                   order.draft.product?.id.toLowerCase().includes('tshirt');
+                   
+  if (isTshirt) {
+    return FABRICS.filter(f => !f.name.toLowerCase().includes('премиум хлопок'));
+  }
+  
+  return FABRICS;
+});
 
 // Upload state
 const uploadingLogo = ref(false)
