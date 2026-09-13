@@ -172,10 +172,49 @@ export default defineEventHandler(async (event) => {
       ? "SHORT SLEEVES ONLY, strictly a t-shirt shape, NO long sleeves."
       : "";
 
-    // ===== 4. YAKUNIY STABILITY PROMPT =====
-    const finalPrompt = `Pure flat-lay photography of a single ${productName} lying flat on a white table. COMPELTELY EMPTY GARMENT, NOBODY WEARING IT. ${sleeveInstruction} STRICTLY SPLIT-SCREEN LAYOUT: The LEFT side shows the FRONT view, the RIGHT side shows the BACK view. ${englishDesignDescription}. ${printStyleInstruction} Top-down camera angle, flat isolated item on pure white background, highly detailed fabric texture. ABSOLUTELY NO HUMANS, NO MODELS, NO FACES, NO MANNEQUINS, NO NECKS, NO ARMS, NO HANGERS.`;
-    const negativePrompt = `grid, 4 images, collage, multiple items, quadruplicate, split into four, hanger, coat hanger, wooden stand, pole, mannequin, dummy, human, person, model, girl, boy, face, wearing, single view, folded, shadows, messy background, text, watermark, 3d render, long sleeves`;
+        // ===== YAKUNIY STABILITY PROMPT =====
+    const finalPrompt = `Retail flat-lay knolling photography. Create a catalog product photograph of the following garment: ${productName}.
 
+COMPOSITION
+A single horizontal image with two equally sized areas placed side by side, without borders or a dividing line.
+The left area shows the garment directly from the front.
+The right area shows the same garment directly from the back.
+Show exactly two depictions of the garment: one front view and one back view. The color, cut, proportions, and material must match in both views.
+
+GARMENT ARRANGEMENT
+In each view, the garment is unworn and laid flat on a horizontal white surface, like clothing neatly arranged on a table before packing.
+The front and back fabric panels rest against each other. There is nothing inside the garment.
+The body and sleeves rest on the surface. The fabric has small, natural wrinkles but does not form the volume of a human chest, shoulders, waist, or arms.
+The neckline lies flat: the inner fabric of the opposite panel is visible through the neck opening.
+${sleeveInstruction}
+
+CAMERA ANGLE AND PLACEMENT
+The camera is positioned directly above the surface and points vertically downward.
+Both views show the entire garment, including the neckline, sleeves, and bottom hem.
+The necklines point toward the top of the image, and the bottom hems point toward the bottom.
+Both views use the same scale and are vertically aligned.
+Leave clear white space between them. The garments do not overlap and are not cropped by the image edges.
+
+GARMENT DESIGN
+${englishDesignDescription}
+${printStyleInstruction}
+Apply graphics and lettering only to the sides explicitly specified in the description. If no design is specified for a side, leave that side a solid color with no print.
+The design description determines only the appearance of the fabric and print. The composition and garment arrangement remain as specified above.
+
+PHOTOGRAPHIC STYLE
+Realistic product photography with clearly visible fabric texture, seams, and edges.
+A uniform white background, soft diffused lighting, and minimal natural contact shadows beneath the fabric.
+
+RESTRICTIONS
+The scene contains only the two views of the laid-flat garment and the white surface.
+No people, body parts, models, mannequins, forms inside the clothing, hangers, stands, hands holding the garment, or additional objects.
+No invisible-person or ghost-mannequin effect.
+No additional angles, close-up details, “front” or “back” labels, borders, or watermarks.
+Text is allowed only when explicitly specified as part of the print.`;
+
+    // ===== JUUDA QAT'IY NEGATIVE PROMPT =====
+    const negativePrompt = `human, person, model, girl, boy, mannequin, dummy, ghost mannequin, body, face, hands, arms, legs, neck, wearing, 3d render, illustration, drawing, wrinkles forming a body, hanger, coat hanger, stand, rack, grid, 4 images, collage, overlapping garments, messy background, text, watermark, long sleeves`;
+    
     const keysEnv =
       process.env.STABILITY_API_KEYS || process.env.STABILITY_API_KEY || "";
     const stabilityKeys = keysEnv
