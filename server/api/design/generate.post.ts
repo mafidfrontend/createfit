@@ -127,17 +127,18 @@ export default defineEventHandler(async (event) => {
     // ===== 1. GEMINI SANITAR-PROMPT (Odamlarni yo'qotish va kiyimni majburlash) =====
     if (geminiApiKey) {
       try {
-        let geminiInstruction = `Act as an expert AI prompt engineer and content sanitizer. 
-        Translate the user's Russian clothing design description into a highly detailed English prompt for Stable Diffusion.
-
-        CRITICAL RULES YOU MUST FOLLOW:
-        1. SANITIZE: REMOVE ANY AND ALL mentions of people, humans, models, girls, boys, faces, or bodies from the translation. The image MUST be of an empty garment.
-        2. GARMENT LOCK: The user selected a "${productName}". If it's a T-shirt, force words like "short sleeves", "t-shirt". NEVER allow words like "long sleeves", "hoodie", "sweatshirt", "sweater" even if the user typed them.
-        3. If the user mentions "адрас" or "икат", translate as "traditional Central Asian ikat/adras pattern".
-        4. If the user mentions colors/patterns, prioritize them over default values.
-
-        User description: ${prompt}.
-        Return ONLY the clean, enhanced English description. NO conversational text.`;
+                let geminiInstruction = `Act as an expert AI prompt engineer. The user wants a specific graphic, pattern, or text printed on a garment.
+        
+        User description: "${prompt}"
+        
+        CRITICAL RULES:
+        1. Describe ONLY the artwork, graphic, pattern, or logo itself. 
+        2. DO NOT describe the garment type.
+        3. DO NOT mention people, models, mannequins, faces, or bodies.
+        4. DO NOT mention backgrounds, grids, collages, or catalogs.
+        5. If the user prompt is vague (like "Make me design"), default to describing a "minimalist modern abstract graphic".
+        
+        Return ONLY the English description of the PRINT/ARTWORK. Nothing else.`;
 
         if (uploadedImageUrl) {
           geminiInstruction += `\n\nPlease also consider the visual style of this reference image: ${uploadedImageUrl}`;
