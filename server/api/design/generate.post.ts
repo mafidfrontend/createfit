@@ -186,16 +186,14 @@ export default defineEventHandler(async (event) => {
       englishProductName = 'long sleeve shirt';
     }
 
-    // ===== 4. YAKUNIY STABILITY PROMPT (QAT'IY VA TABIIY VERSIYA) =====
-    const finalPrompt = `Professional top-down product photography of exactly two identical ${englishProductName}s laid completely flat on a pure white table. 
-    They are placed neatly side-by-side. The left ${englishProductName} shows the front design. The right ${englishProductName} shows the back design. 
-    Both garments are 100% empty, flattened, and unworn. There is no one wearing them. There are NO hangers, NO shoes, NO glasses, NO pants, and NO extra accessories in the scene. Just the two isolated ${englishProductName}s.
-    ${sleeveInstruction}
-    Graphic design printed on the fabric: ${englishDesignDescription}. ${printStyleInstruction}
-    Studio lighting, crisp fabric texture, highly detailed.`;
+    // ===== 4. YAKUNIY STABILITY PROMPT (DIZAYN VA NAQSHGA FOKUS) =====
+    const finalPrompt = `A clear product photo of two identical ${englishProductName}s laid flat side-by-side on a pure white background. 
+    Left garment: Front view. Right garment: Back view.
+    CRITICAL DESIGN ON FABRIC: ${englishDesignDescription}. ${printStyleInstruction}
+    The garments are completely empty and unworn. Top-down view. No people, no hangers, no additional objects.`;
 
     // ===== JUUDA QAT'IY NEGATIVE PROMPT =====
-    const negativePrompt = `human, person, mannequin, dummy, hanger, coat hanger, wooden hanger, folded clothing, collage, grid, template, branding kit, multiple outfits, accessories, shoes, sunglasses, watch, pants, heavy shadows, text, watermark, 3d render`;
+    const negativePrompt = `human, person, mannequin, hanger, 3d body, collage, grid, accessories, pants, shoes, watermark, overlapping clothes`;
     
     const keysEnv =
       process.env.STABILITY_API_KEYS || process.env.STABILITY_API_KEY || "";
