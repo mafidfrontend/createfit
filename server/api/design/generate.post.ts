@@ -203,8 +203,9 @@ export default defineEventHandler(async (event) => {
           supabase,
         );
         break;
-      } catch (err: any) {
-        lastError = err;
+      } catch (error: any) {
+        console.error("STABILITY AI XATOLIGI:", error.data || error.message || error);
+        throw createError({ statusCode: 500, statusMessage: 'Xatolik yuz berdi' });
       }
     }
 
