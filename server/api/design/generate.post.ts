@@ -173,24 +173,36 @@ export default defineEventHandler(async (event) => {
       ? "SHORT SLEEVES ONLY, strictly a t-shirt shape, NO long sleeves."
       : "";
 
-    // ===== 4. YAKUNIY STABILITY PROMPT (MAXSIMAL DETALLASHTIRILGAN VERSIYA) =====
-    const finalPrompt = `Professional e-commerce product photography of a ${productName}. 
+    // ===== MAHSULOT NOMINI INGLIZ TILIGA O'GIRISH =====
+    let englishProductName = 'garment';
+    const prodName = productName?.toLowerCase() || '';
+    if (prodName.includes('футболка') || prodName.includes('t-shirt')) {
+      englishProductName = 't-shirt';
+    } else if (prodName.includes('худи') || prodName.includes('hoodie')) {
+      englishProductName = 'hoodie';
+    } else if (prodName.includes('свитшот') || prodName.includes('sweatshirt')) {
+      englishProductName = 'sweatshirt';
+    } else if (prodName.includes('лонгслив') || prodName.includes('longsleeve')) {
+      englishProductName = 'long sleeve shirt';
+    }
+
+    // ===== 4. YAKUNIY STABILITY PROMPT (INGLIZLASHTIRILGAN) =====
+    const finalPrompt = `Professional e-commerce product photography of a ${englishProductName}. 
     
 [SCENE SETUP]
 Top-down camera angle pointing directly down at a table. The background is a perfectly flat, pure white studio surface. Bright, even, diffused lighting with very soft, minimal contact shadows under the fabric.
 
 [SUBJECT: STRICTLY EMPTY GARMENT]
-Two ${productName}s are laid completely flat on the white table. They are completely empty, unworn, and unbuttoned. There is absolutely NO human, NO mannequin, NO neck, NO face, and NO 3D body volume inside the clothing. The fabric lies flat like a pancake on the table, showing only minor natural 2D folds.
+Two ${englishProductName}s are laid completely flat on the white table. They are completely empty, unworn, and unbuttoned. There is absolutely NO human, NO mannequin, NO neck, NO face, NO hanger, and NO 3D body volume inside the clothing. The fabric lies flat like a pancake on the table, showing only minor natural folds.
 
 [LAYOUT: SIDE-BY-SIDE]
 The image is clearly divided into two equal parts side-by-side without any lines:
-- LEFT SIDE: Displays the FRONT view of the empty ${productName}.
-- RIGHT SIDE: Displays the BACK view of the same empty ${productName}.
+- LEFT SIDE: Displays the FRONT view of the empty ${englishProductName}.
+- RIGHT SIDE: Displays the BACK view of the same empty ${englishProductName}.
 Both garments are perfectly aligned vertically, identical in scale, with clear white space between them.
 
 [GARMENT SPECIFICATIONS]
-Product: ${productName}. 
-Fabric material: ${fabric}.
+Product: ${englishProductName}. 
 ${sleeveInstruction}
 
 [ARTWORK & DESIGN PLACEMENT]
