@@ -173,47 +173,37 @@ export default defineEventHandler(async (event) => {
       ? "SHORT SLEEVES ONLY, strictly a t-shirt shape, NO long sleeves."
       : "";
 
-    // ===== 4. YAKUNIY STABILITY PROMPT (GRIGORIY VERSIYASI) =====
-    const finalPrompt = `Create a catalog product photograph of the following garment: ${productName}.
+    // ===== 4. YAKUNIY STABILITY PROMPT (MAXSIMAL DETALLASHTIRILGAN VERSIYA) =====
+    const finalPrompt = `Professional e-commerce product photography of a ${productName}. 
+    
+[SCENE SETUP]
+Top-down camera angle pointing directly down at a table. The background is a perfectly flat, pure white studio surface. Bright, even, diffused lighting with very soft, minimal contact shadows under the fabric.
 
-COMPOSITION
-A single horizontal image with two equally sized areas placed side by side, without borders or a dividing line.
-The left area shows the garment directly from the front.
-The right area shows the same garment directly from the back.
-Show exactly two depictions of the garment: one front view and one back view. The color, cut, proportions, and material must match in both views.
+[SUBJECT: STRICTLY EMPTY GARMENT]
+Two ${productName}s are laid completely flat on the white table. They are completely empty, unworn, and unbuttoned. There is absolutely NO human, NO mannequin, NO neck, NO face, and NO 3D body volume inside the clothing. The fabric lies flat like a pancake on the table, showing only minor natural 2D folds.
 
-GARMENT ARRANGEMENT
-In each view, the garment is unworn and laid flat on a horizontal white surface, like clothing neatly arranged on a table before packing.
-The front and back fabric panels rest against each other. There is nothing inside the garment.
-The body and sleeves rest on the surface. The fabric has small, natural wrinkles but does not form the volume of a human chest, shoulders, waist, or arms.
-The neckline lies flat: the inner fabric of the opposite panel is visible through the neck opening.
+[LAYOUT: SIDE-BY-SIDE]
+The image is clearly divided into two equal parts side-by-side without any lines:
+- LEFT SIDE: Displays the FRONT view of the empty ${productName}.
+- RIGHT SIDE: Displays the BACK view of the same empty ${productName}.
+Both garments are perfectly aligned vertically, identical in scale, with clear white space between them.
+
+[GARMENT SPECIFICATIONS]
+Product: ${productName}. 
+Fabric material: ${fabric}.
 ${sleeveInstruction}
 
-CAMERA ANGLE AND PLACEMENT
-The camera is positioned directly above the surface and points vertically downward.
-Both views show the entire garment, including the neckline, sleeves, and bottom hem.
-The necklines point toward the top of the image, and the bottom hems point toward the bottom.
-Both views use the same scale and are vertically aligned.
-Leave clear white space between them. The garments do not overlap and are not cropped by the image edges.
-
-GARMENT DESIGN
+[ARTWORK & DESIGN PLACEMENT]
 ${englishDesignDescription}
 ${printStyleInstruction}
-Apply graphics and lettering only to the sides explicitly specified in the description. If no design is specified for a side, leave that side a solid color with no print.
-The design description determines only the appearance of the fabric and print. The composition and garment arrangement remain as specified above.
+The graphic design is printed directly onto the fabric's surface.
 
-PHOTOGRAPHIC STYLE
-Realistic product photography with clearly visible fabric texture, seams, and edges.
-A uniform white background, soft diffused lighting, and minimal natural contact shadows beneath the fabric.
+[TECHNICAL QUALITY]
+Hyper-realistic photography, 8k resolution, macro-level detailed fabric texture, crisp edges, photorealistic catalog mockup.`;
 
-RESTRICTIONS
-The scene contains only the two views of the laid-flat garment and the white surface.
-No people, body parts, models, mannequins, forms inside the clothing, hangers, stands, hands holding the garment, or additional objects.
-No invisible-person or ghost-mannequin effect.
-No additional angles, close-up details, “front” or “back” labels, borders, or watermarks.
-Text is allowed only when explicitly specified as part of the print.`;
+    // ===== JUUDA QAT'IY NEGATIVE PROMPT =====
+    const negativePrompt = `human, person, man, woman, girl, boy, model, face, head, neck, hands, arms, legs, body parts, wearing, dummy, mannequin, ghost mannequin, 3d render, illustration, collage, grid, hangers, stands, overlapping garments, messy background, long sleeves, wrinkles forming a body shape, accessories, shoes, sunglasses, text overlay, watermark`;
 
-    const negativePrompt = `human, person, couple, men, man, women, woman, boys, face, head, body, wearing, standing, modeling, mannequin, dummy, living being, people, background details, 3d render, long sleeves, pants, multiple garments`;
     const keysEnv =
       process.env.STABILITY_API_KEYS || process.env.STABILITY_API_KEY || "";
     const stabilityKeys = keysEnv
