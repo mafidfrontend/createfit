@@ -186,14 +186,14 @@ export default defineEventHandler(async (event) => {
       englishProductName = 'long sleeve shirt';
     }
 
-    // ===== 4. YAKUNIY STABILITY PROMPT (DIZAYN VA NAQSHGA FOKUS) =====
-    const finalPrompt = `A clear product photo of two identical ${englishProductName}s laid flat side-by-side on a pure white background. 
-    Left garment: Front view. Right garment: Back view.
-    CRITICAL DESIGN ON FABRIC: ${englishDesignDescription}. ${printStyleInstruction}
-    The garments are completely empty and unworn. Top-down view. No people, no hangers, no additional objects.`;
+    // ===== 4. YAKUNIY STABILITY PROMPT (TAQIQLAR BIRINCHI O'RINDA) =====
+    const finalPrompt = `Absolutely NO people, NO humans, NO models, NO faces, and NO hangers. 
+    Just a simple photo of two empty, unworn ${englishProductName}s lying completely flat on a pure white table side-by-side. 
+    The left ${englishProductName} shows the front. The right ${englishProductName} shows the back. 
+    Fabric print design: ${englishDesignDescription}. ${printStyleInstruction}`;
 
     // ===== JUUDA QAT'IY NEGATIVE PROMPT =====
-    const negativePrompt = `human, person, mannequin, hanger, 3d body, collage, grid, accessories, pants, shoes, watermark, overlapping clothes`;
+    const negativePrompt = `human, person, model, mannequin, dummy, hanger, 3d body, collage, grid, accessories, shoes, watermark`;
     
     const keysEnv =
       process.env.STABILITY_API_KEYS || process.env.STABILITY_API_KEY || "";
