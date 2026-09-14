@@ -173,19 +173,6 @@ export default defineEventHandler(async (event) => {
       ? "SHORT SLEEVES ONLY, strictly a t-shirt shape, NO long sleeves."
       : "";
 
-    // ===== MAHSULOT NOMINI INGLIZ TILIGA O'GIRISH =====
-    let englishProductName = 'garment';
-    const prodName = productName?.toLowerCase() || '';
-    if (prodName.includes('футболка') || prodName.includes('t-shirt')) {
-      englishProductName = 't-shirt';
-    } else if (prodName.includes('худи') || prodName.includes('hoodie')) {
-      englishProductName = 'hoodie';
-    } else if (prodName.includes('свитшот') || prodName.includes('sweatshirt')) {
-      englishProductName = 'sweatshirt';
-    } else if (prodName.includes('лонгслив') || prodName.includes('longsleeve')) {
-      englishProductName = 'long sleeve shirt';
-    }
-
     // ===== MAHSULOT NOMINI INGLIZ TILIGA O'GIRISH (Ruscha so'z xato bermasligi uchun) =====
     let englishProductName = 'garment';
     const prodName = productName?.toLowerCase() || '';
@@ -227,7 +214,7 @@ Zero human anatomy. Zero 3D body volume. Zero invisible mannequins. Zero hangers
 
     // ===== JUUDA QAT'IY NEGATIVE PROMPT =====
     const negativePrompt = `human, person, anatomical shape, 3d volume, invisible mannequin, dummy, face, neck, body, hands, hanger, coat hanger, wooden hanger, folded fabric, overlapping garments, stacked clothing, shadows, messy background, props, accessories, shoes, text overlay, watermark, multiple overlapping items`;
-
+    
     const keysEnv =
       process.env.STABILITY_API_KEYS || process.env.STABILITY_API_KEY || "";
     const stabilityKeys = keysEnv
