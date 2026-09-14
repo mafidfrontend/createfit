@@ -173,7 +173,7 @@ export default defineEventHandler(async (event) => {
       ? "SHORT SLEEVES ONLY, strictly a t-shirt shape, NO long sleeves."
       : "";
 
-    // ===== MAHSULOT NOMINI INGLIZ TILIGA O'GIRISH (Ruscha so'z xato bermasligi uchun) =====
+    // ===== MAHSULOT NOMINI INGLIZ TILIGA O'GIRISH =====
     let englishProductName = 'garment';
     const prodName = productName?.toLowerCase() || '';
     if (prodName.includes('футболка') || prodName.includes('t-shirt')) {
@@ -186,34 +186,16 @@ export default defineEventHandler(async (event) => {
       englishProductName = 'long sleeve shirt';
     }
 
-    // ===== 4. YAKUNIY STABILITY PROMPT (ULTRA-MURAKKAB VA STRUKTURALI) =====
-    const finalPrompt = `<<< CORE DIRECTIVE >>>
-Generate a precise 2D flat-lay clothing mockup template.
-
-<<< SCENE TOPOGRAPHY >>>
-Camera Angle: Exact 90-degree overhead top-down view.
-Background Environment: Infinite pure white (#FFFFFF) flat studio surface. Zero props, zero heavy shadows.
-
-<<< COMPOSITION & GRID >>>
-Split the canvas strictly into two equal halves (left and right) with a clear white gap in the center.
-Subject 1 (Left Half): The FRONT VIEW of a single ${englishProductName}.
-Subject 2 (Right Half): The BACK VIEW of the identical ${englishProductName}.
-Alignment Rule: Both garments must be vertically aligned, sharing the exact same scale and proportions.
-
-<<< PHYSICALITY OF SUBJECT >>>
-State: 100% unworn, unbuttoned, completely empty inside.
-Form Factor: Lying totally flat on the ground like a 2D cutout.
-Collar/Neckline: Flattened, showing the inner back-tag area through the neck opening.
-Sleeves: Spread out perfectly flat on the surface. ${sleeveInstruction}
-
-<<< DESIGN INTEGRATION >>>
-Apply the following visual graphic seamlessly onto the fabric surface: ${englishDesignDescription}. ${printStyleInstruction}
-
-<<< ABSOLUTE PROHIBITIONS >>>
-Zero human anatomy. Zero 3D body volume. Zero invisible mannequins. Zero hangers of any material. Zero extra clothing items, shoes, or accessories in the frame.`;
+    // ===== 4. YAKUNIY STABILITY PROMPT (QAT'IY VA TABIIY VERSIYA) =====
+    const finalPrompt = `Professional top-down product photography of exactly two identical ${englishProductName}s laid completely flat on a pure white table. 
+    They are placed neatly side-by-side. The left ${englishProductName} shows the front design. The right ${englishProductName} shows the back design. 
+    Both garments are 100% empty, flattened, and unworn. There is no one wearing them. There are NO hangers, NO shoes, NO glasses, NO pants, and NO extra accessories in the scene. Just the two isolated ${englishProductName}s.
+    ${sleeveInstruction}
+    Graphic design printed on the fabric: ${englishDesignDescription}. ${printStyleInstruction}
+    Studio lighting, crisp fabric texture, highly detailed.`;
 
     // ===== JUUDA QAT'IY NEGATIVE PROMPT =====
-    const negativePrompt = `human, person, anatomical shape, 3d volume, invisible mannequin, dummy, face, neck, body, hands, hanger, coat hanger, wooden hanger, folded fabric, overlapping garments, stacked clothing, shadows, messy background, props, accessories, shoes, text overlay, watermark, multiple overlapping items`;
+    const negativePrompt = `human, person, mannequin, dummy, hanger, coat hanger, wooden hanger, folded clothing, collage, grid, template, branding kit, multiple outfits, accessories, shoes, sunglasses, watch, pants, heavy shadows, text, watermark, 3d render`;
     
     const keysEnv =
       process.env.STABILITY_API_KEYS || process.env.STABILITY_API_KEY || "";
