@@ -173,7 +173,7 @@ export default defineEventHandler(async (event) => {
       ? "SHORT SLEEVES ONLY, strictly a t-shirt shape, NO long sleeves."
       : "";
 
-    // ===== MAHSULOT NOMINI INGLIZ TILIGA O'GIRISH =====
+    // ===== 1. MAHSULOT NOMINI INGLIZ TILIGA O'GIRISH =====
     let englishProductName = 'garment';
     const prodName = productName?.toLowerCase() || '';
     if (prodName.includes('футболка') || prodName.includes('t-shirt')) {
@@ -186,14 +186,35 @@ export default defineEventHandler(async (event) => {
       englishProductName = 'long sleeve shirt';
     }
 
-    // ===== 4. YAKUNIY STABILITY PROMPT (FAQAT POZITIV TA'RIF) =====
-    const finalPrompt = `Isolated flat-lay apparel product photography. Exactly two empty ${englishProductName}s placed perfectly flat on a pure white table side-by-side. Top-down overhead view. 
-    Left ${englishProductName}: Front side. Right ${englishProductName}: Back side. 
-    Fabric print design: ${englishDesignDescription}. ${printStyleInstruction}`;
+    // ===== 2. NEGATIVE PROMPT (BIRINCHI NAVBATDA, MAXSIMAL DETALLASHGAN) =====
+    const negativePrompt = `
+      [ANATOMY]: human, person, live model, mannequin, dummy, ghost mannequin, body volume, face, head, neck, hands, arms, legs.
+      [PROPS & OBJECTS]: hangers, wooden hanger, plastic hanger, metal wire hook, clothing rack, clips, pins, shoes, sunglasses, accessories, pants.
+      [COMPOSITION ERRORS]: overlapping garments, folded fabric, stacked clothes, messy background, non-white background, grid, collage, template borders, dividing lines.
+      [PHYSICS ERRORS]: 3d body shape inside clothes, deep shadows, harsh lighting, standing up, floating.
+      [ARTIFACTS]: text overlay, watermarks, UI elements, branding kit layout.
+    `.replace(/\n\s+/g, ' ').trim(); // Qatorlarni bitta qilib jo'natish uchun
 
-    // ===== JUUDA QAT'IY NEGATIVE PROMPT =====
-    const negativePrompt = `hangers, wooden hanger, metal hooks, clothing rack, people, person, human, face, body, dummy, mannequin, ghost mannequin, deep shadows, folded clothes, messy background, props, accessories`;
-    
+    // ===== 3. POSITIVE PROMPT (HAR BIR DETAL ALOHIDA BLOKDA) =====
+    const finalPrompt = `
+      [SUBJECT]
+      Exactly two isolated ${englishProductName}s. Completely unworn, empty, and flattened.
+      
+      [LAYOUT]
+      Side-by-side arrangement. The left garment shows the exact FRONT side. The right garment shows the exact BACK side. Both garments are aligned vertically and horizontally with clear symmetrical negative space between them.
+      
+      [PHYSICS]
+      True 2D flat-lay photography. The fabric is spread evenly on the surface like a piece of paper, showing only natural micro-wrinkles. Absolutely zero 3D depth or form inside the garments. ${sleeveInstruction}
+      
+      [DESIGN INTEGRATION]
+      ${englishDesignDescription}
+      ${printStyleInstruction}
+      The graphic is seamlessly printed flat onto the fabric surface.
+      
+      [CAMERA & LIGHTING]
+      Overhead top-down 90-degree camera angle. Pure solid white (#FFFFFF) seamless background. Professional studio flat-lay lighting: soft, diffused, even illumination with extremely minimal, soft contact shadows. Hyper-realistic 8k resolution, crisp fabric textures.
+    `.replace(/\n\s+/g, ' ').trim();
+
     const keysEnv =
       process.env.STABILITY_API_KEYS || process.env.STABILITY_API_KEY || "";
     const stabilityKeys = keysEnv
