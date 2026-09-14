@@ -186,35 +186,47 @@ export default defineEventHandler(async (event) => {
       englishProductName = 'long sleeve shirt';
     }
 
-    // ===== 4. YAKUNIY STABILITY PROMPT (INGLIZLASHTIRILGAN) =====
-    const finalPrompt = `Professional e-commerce product photography of a ${englishProductName}. 
-    
-[SCENE SETUP]
-Top-down camera angle pointing directly down at a table. The background is a perfectly flat, pure white studio surface. Bright, even, diffused lighting with very soft, minimal contact shadows under the fabric.
+    // ===== MAHSULOT NOMINI INGLIZ TILIGA O'GIRISH (Ruscha so'z xato bermasligi uchun) =====
+    let englishProductName = 'garment';
+    const prodName = productName?.toLowerCase() || '';
+    if (prodName.includes('футболка') || prodName.includes('t-shirt')) {
+      englishProductName = 't-shirt';
+    } else if (prodName.includes('худи') || prodName.includes('hoodie')) {
+      englishProductName = 'hoodie';
+    } else if (prodName.includes('свитшот') || prodName.includes('sweatshirt')) {
+      englishProductName = 'sweatshirt';
+    } else if (prodName.includes('лонгслив') || prodName.includes('longsleeve')) {
+      englishProductName = 'long sleeve shirt';
+    }
 
-[SUBJECT: STRICTLY EMPTY GARMENT]
-Two ${englishProductName}s are laid completely flat on the white table. They are completely empty, unworn, and unbuttoned. There is absolutely NO human, NO mannequin, NO neck, NO face, NO hanger, and NO 3D body volume inside the clothing. The fabric lies flat like a pancake on the table, showing only minor natural folds.
+    // ===== 4. YAKUNIY STABILITY PROMPT (ULTRA-MURAKKAB VA STRUKTURALI) =====
+    const finalPrompt = `<<< CORE DIRECTIVE >>>
+Generate a precise 2D flat-lay clothing mockup template.
 
-[LAYOUT: SIDE-BY-SIDE]
-The image is clearly divided into two equal parts side-by-side without any lines:
-- LEFT SIDE: Displays the FRONT view of the empty ${englishProductName}.
-- RIGHT SIDE: Displays the BACK view of the same empty ${englishProductName}.
-Both garments are perfectly aligned vertically, identical in scale, with clear white space between them.
+<<< SCENE TOPOGRAPHY >>>
+Camera Angle: Exact 90-degree overhead top-down view.
+Background Environment: Infinite pure white (#FFFFFF) flat studio surface. Zero props, zero heavy shadows.
 
-[GARMENT SPECIFICATIONS]
-Product: ${englishProductName}. 
-${sleeveInstruction}
+<<< COMPOSITION & GRID >>>
+Split the canvas strictly into two equal halves (left and right) with a clear white gap in the center.
+Subject 1 (Left Half): The FRONT VIEW of a single ${englishProductName}.
+Subject 2 (Right Half): The BACK VIEW of the identical ${englishProductName}.
+Alignment Rule: Both garments must be vertically aligned, sharing the exact same scale and proportions.
 
-[ARTWORK & DESIGN PLACEMENT]
-${englishDesignDescription}
-${printStyleInstruction}
-The graphic design is printed directly onto the fabric's surface.
+<<< PHYSICALITY OF SUBJECT >>>
+State: 100% unworn, unbuttoned, completely empty inside.
+Form Factor: Lying totally flat on the ground like a 2D cutout.
+Collar/Neckline: Flattened, showing the inner back-tag area through the neck opening.
+Sleeves: Spread out perfectly flat on the surface. ${sleeveInstruction}
 
-[TECHNICAL QUALITY]
-Hyper-realistic photography, 8k resolution, macro-level detailed fabric texture, crisp edges, photorealistic catalog mockup.`;
+<<< DESIGN INTEGRATION >>>
+Apply the following visual graphic seamlessly onto the fabric surface: ${englishDesignDescription}. ${printStyleInstruction}
+
+<<< ABSOLUTE PROHIBITIONS >>>
+Zero human anatomy. Zero 3D body volume. Zero invisible mannequins. Zero hangers of any material. Zero extra clothing items, shoes, or accessories in the frame.`;
 
     // ===== JUUDA QAT'IY NEGATIVE PROMPT =====
-    const negativePrompt = `human, person, man, woman, girl, boy, model, face, head, neck, hands, arms, legs, body parts, wearing, dummy, mannequin, ghost mannequin, 3d render, illustration, collage, grid, hangers, stands, overlapping garments, messy background, long sleeves, wrinkles forming a body shape, accessories, shoes, sunglasses, text overlay, watermark`;
+    const negativePrompt = `human, person, anatomical shape, 3d volume, invisible mannequin, dummy, face, neck, body, hands, hanger, coat hanger, wooden hanger, folded fabric, overlapping garments, stacked clothing, shadows, messy background, props, accessories, shoes, text overlay, watermark, multiple overlapping items`;
 
     const keysEnv =
       process.env.STABILITY_API_KEYS || process.env.STABILITY_API_KEY || "";
