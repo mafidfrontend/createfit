@@ -187,33 +187,14 @@ export default defineEventHandler(async (event) => {
     }
 
     // ===== 2. NEGATIVE PROMPT (BIRINCHI NAVBATDA, MAXSIMAL DETALLASHGAN) =====
-    const negativePrompt = `
-      [ANATOMY]: human, person, live model, mannequin, dummy, ghost mannequin, body volume, face, head, neck, hands, arms, legs.
-      [PROPS & OBJECTS]: hangers, wooden hanger, plastic hanger, metal wire hook, clothing rack, clips, pins, shoes, sunglasses, accessories, pants.
-      [COMPOSITION ERRORS]: overlapping garments, folded fabric, stacked clothes, messy background, non-white background, grid, collage, template borders, dividing lines.
-      [PHYSICS ERRORS]: 3d body shape inside clothes, deep shadows, harsh lighting, standing up, floating.
-      [ARTIFACTS]: text overlay, watermarks, UI elements, branding kit layout.
-    `.replace(/\n\s+/g, ' ').trim(); // Qatorlarni bitta qilib jo'natish uchun
+    const negativePrompt = `person, human, model, mannequin, ghost mannequin, dress form, dummy, body, torso, head, face, hands, arms, legs, skin, hanger, hook, clothing rack, clips, pins, stand, shoes, sneakers, socks, pants, jeans, shorts, skirt, bag, sunglasses, glasses, watch, jewelry, hat, phone, furniture, props, accessories, packaging, boxes, extra garment, third garment, more than two garments, duplicate garments, clothing pile, overlapping garments, touching garments, stacked garments, one garment on top of another, vertical stacking, folded clothes, rolled clothes, tangled fabric, cropped garment, partial garment, perspective view, angled view, side view, three-quarter view, standing garment, hanging garment, floating garment, body-shaped clothing, 3D clothing shape, excessive wrinkles, deep folds, distorted proportions, deformed garment, malformed sleeves, malformed collar, malformed neckline, extra sleeves, inconsistent garments, different colors, different shapes, different sizes, different designs, front and back mismatch, blank garment, plain garment, empty garment, unprinted garment, missing graphic, missing print, invisible design, faded design, incorrect graphic, distorted graphic, warped graphic, broken graphic, duplicated graphic, random graphic, blurry print, low detail, low resolution, pixelated, noise, artifacts, CGI, 3D render, illustration, cartoon, painting, harsh shadows, dramatic shadows, colored background, gray background, textured background, non-white background, gradient background, room, studio equipment, scenery, collage, montage, template, mockup, grid, split screen, multiple panels, borders, dividing lines, branding kit, catalog layout, text overlay, captions, watermark, UI`
 
     // ===== 3. POSITIVE PROMPT (HAR BIR DETAL ALOHIDA BLOKDA) =====
-    const finalPrompt = `
-      [SUBJECT]
-      Exactly two isolated ${englishProductName}s. Completely unworn, empty, and flattened.
-      
-      [LAYOUT]
-      Side-by-side arrangement. The left garment shows the exact FRONT side. The right garment shows the exact BACK side. Both garments are aligned vertically and horizontally with clear symmetrical negative space between them.
-      
-      [PHYSICS]
-      True 2D flat-lay photography. The fabric is spread evenly on the surface like a piece of paper, showing only natural micro-wrinkles. Absolutely zero 3D depth or form inside the garments. ${sleeveInstruction}
-      
-      [DESIGN INTEGRATION]
-      ${englishDesignDescription}
-      ${printStyleInstruction}
-      The graphic is seamlessly printed flat onto the fabric surface.
-      
-      [CAMERA & LIGHTING]
-      Overhead top-down 90-degree camera angle. Pure solid white (#FFFFFF) seamless background. Professional studio flat-lay lighting: soft, diffused, even illumination with extremely minimal, soft contact shadows. Hyper-realistic 8k resolution, crisp fabric textures.
-    `.replace(/\n\s+/g, ' ').trim();
+    const finalPrompt = `A photorealistic e-commerce product photograph showing exactly two identical ${englishProductName} garments laid completely flat side by side on a clean pure white surface. The two garments are separate, evenly spaced, fully visible and arranged horizontally in the same orientation. The garment on the left clearly shows its front side, while the identical garment on the right clearly shows its back side. Both garments have the same color, shape, fabric, proportions and construction.
+
+The graphic design "${englishDesignDescription}" is clearly and visibly printed on both garments, with ${printStyleInstruction}. The design is an actual physical print integrated naturally into the fabric, following the garment's surface and shape with sharp, accurate and clearly recognizable details. The graphic must be prominently visible and preserved on both the front and back garments according to the specified print style.
+
+The garments are naturally spread flat on the surface with realistic fabric texture and subtle natural wrinkles. Direct overhead 90-degree camera view, centered composition, professional commercial e-commerce photography, clean pure white background, soft diffused studio lighting, very soft contact shadows, realistic cotton or textile material, accurate proportions, crisp details, natural colors, high photographic realism.`;
 
     const keysEnv =
       process.env.STABILITY_API_KEYS || process.env.STABILITY_API_KEY || "";
