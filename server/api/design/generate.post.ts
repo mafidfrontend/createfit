@@ -127,7 +127,7 @@ export default defineEventHandler(async (event) => {
     // ===== 1. GEMINI SANITAR-PROMPT (Odamlarni yo'qotish va kiyimni majburlash) =====
     if (geminiApiKey) {
       try {
-                let geminiInstruction = `Act as an expert AI prompt engineer. The user wants a specific graphic, pattern, or text printed on a garment.
+        let geminiInstruction = `Act as an expert AI prompt engineer. The user wants a specific graphic, pattern, or text printed on a garment.
         
         User description: "${prompt}"
         
@@ -173,7 +173,7 @@ export default defineEventHandler(async (event) => {
       ? "SHORT SLEEVES ONLY, strictly a t-shirt shape, NO long sleeves."
       : "";
 
-        // ===== 4. YAKUNIY STABILITY PROMPT (GRIGORIY VERSIYASI) =====
+    // ===== 4. YAKUNIY STABILITY PROMPT (GRIGORIY VERSIYASI) =====
     const finalPrompt = `Create a catalog product photograph of the following garment: ${productName}.
 
 COMPOSITION
@@ -212,8 +212,8 @@ No people, body parts, models, mannequins, forms inside the clothing, hangers, s
 No invisible-person or ghost-mannequin effect.
 No additional angles, close-up details, “front” or “back” labels, borders, or watermarks.
 Text is allowed only when explicitly specified as part of the print.`;
-    
-       
+
+    const negativePrompt = `human, person, couple, men, man, women, woman, boys, face, head, body, wearing, standing, modeling, mannequin, dummy, living being, people, background details, 3d render, long sleeves, pants, multiple garments`;
     const keysEnv =
       process.env.STABILITY_API_KEYS || process.env.STABILITY_API_KEY || "";
     const stabilityKeys = keysEnv
