@@ -1,5 +1,8 @@
 import { ref } from 'vue'
-import type { GenerateDesignRequest, GenerateDesignResponse } from '~/types/design'
+import type {
+  GenerateDesignRequest,
+  GenerateDesignResponse,
+} from '~/types/design'
 
 export function useDesign() {
   const isLoading = ref(false)
@@ -12,35 +15,69 @@ export function useDesign() {
     error.value = null
 
     try {
-      const response = await $fetch<GenerateDesignResponse | { success: false; error: string }>(
-        '/api/design/generate',
-        {
-          method: 'POST',
-          body: request,
-        },
-      )
+      console.log('=== DESIGN REQUEST ===')
+      console.log(JSON.stringify(request, null, 2))
 
-      if ('success' in response && response.success === false) {
-        error.value = 'Сгенерированное изображение неполное — попробуйте ещё раз'
+      const response = await $fetch<
+        GenerateDesignResponse | { success: false; error: string }
+      >('/api/design/generate', {
+        method: 'POST',
+        body: request,
+      })
+
+      if (
+        'success' in response &&
+        response.success === false
+      ) {
+        error.value =
+          response.error ||
+          'Сгенерированное изображение неполное — попробуйте ещё раз'
+
         return null
       }
 
-      const data = response as GenerateDesignResponse
-      if (!data.frontImage || !data.backImage) {
-        error.value = 'Сгенерированное изображение неполное — попробуйте ещё раз'
+      const data =
+        response as GenerateDesignResponse
+
+      console.log('=== DESIGN RESPONSE ===')
+      console.log(JSON.stringify(data, null, 2))
+
+      if (!data.frontImage) {
+        error.value =
+          'Сгенерированное изображение не получено — попробуйте ещё раз'
+
         return null
       }
 
       return data
     } catch (err: unknown) {
-      if (err && typeof err === 'object' && 'data' in err) {
-        const data = (err as { data?: { statusMessage?: string; error?: string } }).data
-        error.value = data?.error ?? data?.statusMessage ?? 'Не удалось сгенерировать дизайн'
+      if (
+        err &&
+        typeof err === 'object' &&
+        'data' in err
+      ) {
+        const data = (
+          err as {
+            data?: {
+              statusMessage?: string
+              message?: string
+              error?: string
+            }
+          }
+        ).data
+
+        error.value =
+          data?.error ??
+          data?.message ??
+          data?.statusMessage ??
+          'Не удалось сгенерировать дизайн'
       } else if (err instanceof Error) {
         error.value = err.message
       } else {
-        error.value = 'Не удалось сгенерировать дизайн'
+        error.value =
+          'Не удалось сгенерировать дизайн'
       }
+
       return null
     } finally {
       isLoading.value = false
