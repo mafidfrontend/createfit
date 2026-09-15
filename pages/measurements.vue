@@ -1,6 +1,6 @@
 <template>
   <div class="slide-up pb-8">
-    <StepHeader :step="4" eyebrow="Размер" title="Твоя посадка" description="Выбери стандартный размер или загрузи фото для AI-расчёта мерок." />
+    <StepHeader :step="4" eyebrow="Размер" title="Твоя размер" description="Выбери стандартный размер или загрузи фото для AI-расчёта мерок." />
 
     <!-- Standard sizes -->
     <div class="grid grid-cols-4 gap-2">
