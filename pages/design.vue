@@ -36,7 +36,7 @@
     </div>
 
     <!-- Upload design & Gemini Dimension Extraction -->
-    <div>
+    <div v-if="activeTab === 'upload'">
       <label
         class="mt-4 block cursor-pointer rounded-2xl border border-dashed border-sage bg-mint p-4 transition"
         :class="{ 'opacity-60 pointer-events-none': uploadingLogo }"
@@ -112,14 +112,14 @@
             <span class="text-ink/60">Длина:</span>
             <b class="text-right">{{ extractedDimensions.length_cm }} см</b>
           </div>
-          <!-- <div class="flex justify-between border-b border-sage/10 pb-1.5">
+          <div class="flex justify-between border-b border-sage/10 pb-1.5">
             <span class="text-ink/60">Плечи:</span>
             <b class="text-right">{{ extractedDimensions.shoulder_cm }} см</b>
           </div>
           <div class="flex justify-between pt-0.5">
             <span class="text-ink/60">Длина рукава:</span>
             <b class="text-right">{{ extractedDimensions.sleeve_cm }} см</b>
-          </div> -->
+          </div>
         </div>
       </div>
       <p v-if="extractError" class="mt-2 text-xs font-medium text-terracotta">
@@ -128,7 +128,7 @@
     </div>
 
     <!-- AI design creation -->
-    <div>
+    <div v-else class="mt-4">
       <!-- GENERATION FORM (Faqat tahrirlash rejimida ko'rinadi) -->
       <div v-show="isEditingAi" class="space-y-4">
         <!-- Logo upload for AI -->
@@ -173,7 +173,8 @@
           </div>
         </div>
 
-        <!-- <div>
+        <!-- Style -->
+        <div>
           <label class="text-sm font-bold">Стиль</label>
           <div class="mt-2 grid grid-cols-3 gap-2">
             <button
@@ -193,6 +194,7 @@
           </div>
         </div>
 
+        <!-- Color -->
         <div>
           <label class="text-sm font-bold"
             >Цвет изделия
@@ -217,7 +219,7 @@
               <span class="text-xs font-bold">{{ color.name }}</span>
             </button>
           </div>
-        </div> -->
+        </div>
 
         <!-- Prompt -->
         <div>
