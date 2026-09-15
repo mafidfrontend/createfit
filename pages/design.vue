@@ -112,14 +112,6 @@
             <span class="text-ink/60">Длина:</span>
             <b class="text-right">{{ extractedDimensions.length_cm }} см</b>
           </div>
-          <div class="flex justify-between border-b border-sage/10 pb-1.5">
-            <span class="text-ink/60">Плечи:</span>
-            <b class="text-right">{{ extractedDimensions.shoulder_cm }} см</b>
-          </div>
-          <div class="flex justify-between pt-0.5">
-            <span class="text-ink/60">Длина рукава:</span>
-            <b class="text-right">{{ extractedDimensions.sleeve_cm }} см</b>
-          </div>
         </div>
       </div>
       <p v-if="extractError" class="mt-2 text-xs font-medium text-terracotta">
@@ -169,54 +161,6 @@
               @click="removeLogo"
             >
               Удалить
-            </button>
-          </div>
-        </div>
-
-        <!-- Style -->
-        <div>
-          <label class="text-sm font-bold">Стиль</label>
-          <div class="mt-2 grid grid-cols-3 gap-2">
-            <button
-              v-for="style in DESIGN_STYLES"
-              :key="style.id"
-              class="rounded-xl border bg-white p-3 text-left transition"
-              :class="
-                aiStyle === style.id ? 'border-sage bg-mint' : 'border-line'
-              "
-              @click="aiStyle = style.id"
-            >
-              <span class="text-xs font-bold">{{ style.name }}</span>
-              <span class="mt-1 block text-[10px] leading-4 text-ink/45">{{
-                style.description
-              }}</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Color -->
-        <div>
-          <label class="text-sm font-bold"
-            >Цвет изделия
-            <span class="font-normal text-ink/45">(необязательно)</span></label
-          >
-          <div class="mt-2 flex flex-wrap gap-2">
-            <button
-              v-for="color in SHIRT_COLORS"
-              :key="color.id"
-              class="flex items-center gap-2 rounded-xl border px-3 py-2.5 transition"
-              :class="
-                aiColor === color.id
-                  ? 'border-sage ring-2 ring-sage/10 bg-mint'
-                  : 'border-line'
-              "
-              @click="aiColor = color.id"
-            >
-              <span
-                class="h-5 w-5 rounded-full border border-line"
-                :style="{ background: color.hex }"
-              />
-              <span class="text-xs font-bold">{{ color.name }}</span>
             </button>
           </div>
         </div>
@@ -299,7 +243,7 @@
     <p v-if="error" class="mt-3 text-sm text-terracotta">{{ error }}</p>
     <BackNext
       back-to="/preview"
-      :disabled="!order.draft.fabric || !order.draft.design"
+      :disabled="false"
       @next="goNext"
     />
   </div>
@@ -401,15 +345,13 @@ const generatedFront = ref(order.draft.design?.aiFrontImage ?? null);
 const generatedBack = ref(order.draft.design?.aiBackImage ?? null);
 
 const designTabs = [
+  { id: "existing" as const, label: "Готовые" },
   { id: "upload" as const, label: "Загрузить" },
   { id: "ai" as const, label: "AI дизайн" },
 ];
 
 const canGenerate = computed(
-  () =>
-    aiPrompt.value.trim().length > 0 &&
-    order.draft.product !== null &&
-    aiColor.value !== null,
+  () => aiPrompt.value.trim().length > 0 && order.draft.product !== null,
 );
 
 function selectExisting(design: { id: string; name: string }): void {
