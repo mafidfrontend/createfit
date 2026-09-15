@@ -855,7 +855,7 @@ Professional commercial e-commerce photography.
         hasReferenceImage:
           Boolean(uploadedImageUrl),
         provider: "stability-ai",
-        textAnalyzer: "gemini-2.5-flash",
+        textAnalyzer: "gemini-3.6-flash",
       },
     };
   } catch (error: any) {
