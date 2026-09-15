@@ -426,7 +426,6 @@ const generatedFront = ref(order.draft.design?.aiFrontImage ?? null);
 const generatedBack = ref(order.draft.design?.aiBackImage ?? null);
 
 const designTabs = [
-  { id: "existing" as const, label: "Готовые" },
   { id: "upload" as const, label: "Загрузить" },
   { id: "ai" as const, label: "AI дизайн" },
 ];
