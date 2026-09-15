@@ -1,13 +1,15 @@
 import { createClient } from "@supabase/supabase-js";
 import { GoogleGenAI } from "@google/genai";
 
-type GenerateBody = {
-  productName?: string;
-  fabric?: string;
-  color?: string;
-  style?: string;
-  prompt?: string;
-  uploadedImageUrl?: string;
+type ArtworkAnalysis = {
+  language: string;
+  artworkDescription: string;
+  mainSubject: string;
+  colors: string[];
+  style: string;
+  composition: string;
+  details: string[];
+  background: string;
 };
 
 async function generateAndUpload(
@@ -58,7 +60,9 @@ async function generateAndUpload(
     });
 
   if (uploadError) {
-    throw new Error(`Supabase Storage xatosi: ${uploadError.message}`);
+    throw new Error(
+      `Supabase Storage xatosi: ${uploadError.message}`,
+    );
   }
 
   const { data: publicUrlData } = supabase.storage
@@ -72,11 +76,11 @@ async function generateAndUpload(
   return publicUrlData.publicUrl;
 }
 
-async function callGeminiWithRetry(
+async function analyzeArtworkWithGemini(
   geminiApiKey: string,
-  promptText: string,
+  userPrompt: string,
   maxRetries = 3,
-): Promise<string> {
+): Promise<ArtworkAnalysis> {
   if (!geminiApiKey) {
     throw new Error("Gemini API kaliti topilmadi");
   }
@@ -87,35 +91,206 @@ async function callGeminiWithRetry(
 
   let lastError: Error | null = null;
 
+  const instruction = `
+Analyze the user's clothing design idea and convert it into a structured
+description of the VISUAL ARTWORK only.
+
+USER DESIGN IDEA:
+"${userPrompt}"
+
+IMPORTANT:
+- Return the complete JSON object requested by the schema.
+- All descriptive values MUST be in English.
+- Do not mention clothing, garments, t-shirts, hoodies, sweatshirts,
+  people, models, mannequins, bodies, fabric, cameras, photography,
+  studio, catalog, mockup, or product presentation.
+- Describe only the artwork itself.
+- Preserve the user's original intent.
+- Do not invent major objects, subjects, symbols, or colors.
+- If the user explicitly mentions a background, preserve it.
+- If some detail is not specified, use a concise neutral description.
+- Keep artworkDescription concise but visually useful for an image model.
+`;
+
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       console.log(
-        `Gemini (2.5-flash): urinish ${attempt}/${maxRetries}`,
+        `Gemini structured analysis: ${attempt}/${maxRetries}`,
       );
 
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash",
-        contents: promptText,
+        contents: instruction,
+        config: {
+          responseMimeType: "application/json",
+
+          responseSchema: {
+            type: "object",
+            properties: {
+              language: {
+                type: "string",
+                description:
+                  "The detected language of the user's original design description.",
+              },
+
+              artworkDescription: {
+                type: "string",
+                description:
+                  "Concise English description of the artwork suitable for an image generation model.",
+              },
+
+              mainSubject: {
+                type: "string",
+                description:
+                  "The main subject, symbol, object, or visual element of the artwork.",
+              },
+
+              colors: {
+                type: "array",
+                items: {
+                  type: "string",
+                },
+                description:
+                  "Important colors explicitly present or clearly implied in the artwork.",
+              },
+
+              style: {
+                type: "string",
+                description:
+                  "The requested or inferred visual style of the artwork.",
+              },
+
+              composition: {
+                type: "string",
+                description:
+                  "How the main visual elements are arranged.",
+              },
+
+              details: {
+                type: "array",
+                items: {
+                  type: "string",
+                },
+                description:
+                  "Important recognizable visual details that should be preserved.",
+              },
+
+              background: {
+                type: "string",
+                description:
+                  "The artwork background or negative-space treatment.",
+              },
+            },
+
+            required: [
+              "language",
+              "artworkDescription",
+              "mainSubject",
+              "colors",
+              "style",
+              "composition",
+              "details",
+              "background",
+            ],
+          },
+        },
       });
 
-      const text = response?.text?.trim();
+      const rawText = response?.text?.trim();
 
-      if (!text) {
-        throw new Error("Gemini dan bo'sh javob keldi");
+      if (!rawText) {
+        throw new Error(
+          "Gemini dan bo'sh JSON javob keldi",
+        );
+      }
+
+      console.log("Gemini raw JSON:", rawText);
+
+      let parsed: Partial<ArtworkAnalysis>;
+
+      try {
+        parsed = JSON.parse(rawText);
+      } catch {
+        throw new Error(
+          `Gemini JSON parse xatosi: ${rawText}`,
+        );
+      }
+
+      const result: ArtworkAnalysis = {
+        language:
+          typeof parsed.language === "string"
+            ? parsed.language.trim()
+            : "unknown",
+
+        artworkDescription:
+          typeof parsed.artworkDescription === "string"
+            ? parsed.artworkDescription.trim()
+            : "",
+
+        mainSubject:
+          typeof parsed.mainSubject === "string"
+            ? parsed.mainSubject.trim()
+            : "",
+
+        colors:
+          Array.isArray(parsed.colors)
+            ? parsed.colors
+              .filter(
+                (item): item is string =>
+                  typeof item === "string",
+              )
+              .map((item) => item.trim())
+              .filter(Boolean)
+            : [],
+
+        style:
+          typeof parsed.style === "string"
+            ? parsed.style.trim()
+            : "",
+
+        composition:
+          typeof parsed.composition === "string"
+            ? parsed.composition.trim()
+            : "",
+
+        details:
+          Array.isArray(parsed.details)
+            ? parsed.details
+              .filter(
+                (item): item is string =>
+                  typeof item === "string",
+              )
+              .map((item) => item.trim())
+              .filter(Boolean)
+            : [],
+
+        background:
+          typeof parsed.background === "string"
+            ? parsed.background.trim()
+            : "",
+      };
+
+      if (!result.artworkDescription) {
+        throw new Error(
+          "Gemini artworkDescription qaytarmadi",
+        );
       }
 
       console.log(
-        `Gemini muvaffaqiyatli: ${text.substring(0, 120)}...`,
+        "Gemini structured result:",
+        JSON.stringify(result, null, 2),
       );
 
-      return text;
+      return result;
     } catch (error: any) {
       lastError =
         error instanceof Error
           ? error
-          : new Error(error?.message || "Noma'lum Gemini xatosi");
+          : new Error(
+            error?.message || "Noma'lum Gemini xatosi",
+          );
 
-      const errorMessage = lastError.message || "";
+      const errorMessage = lastError.message;
       const normalized = errorMessage.toLowerCase();
 
       const isAuthError =
@@ -146,18 +321,25 @@ async function callGeminiWithRetry(
         8000,
       );
 
-      await new Promise((resolve) => setTimeout(resolve, waitTime));
+      await new Promise((resolve) =>
+        setTimeout(resolve, waitTime),
+      );
     }
   }
 
   throw new Error(
-    `Gemini ishlamadi: ${lastError?.message || "Noma'lum xato"
+    `Gemini structured output ishlamadi: ${lastError?.message || "Noma'lum xato"
     }`,
   );
 }
 
-function normalizeText(value: unknown, fallback = ""): string {
-  if (typeof value !== "string") return fallback;
+function normalizeText(
+  value: unknown,
+  fallback = "",
+): string {
+  if (typeof value !== "string") {
+    return fallback;
+  }
 
   const trimmed = value.trim();
 
@@ -168,10 +350,17 @@ function normalizeText(value: unknown, fallback = ""): string {
   return trimmed;
 }
 
-function detectProductType(productName: string): string {
+function detectProductType(
+  productName: string,
+  productType?: string,
+): string {
   const name = productName.toLowerCase();
+  const type = (productType || "").toLowerCase();
 
   if (
+    type === "tee" ||
+    type === "t-shirt" ||
+    type === "tshirt" ||
     name.includes("футболка") ||
     name.includes("t-shirt") ||
     name.includes("tshirt")
@@ -180,6 +369,7 @@ function detectProductType(productName: string): string {
   }
 
   if (
+    type === "hoodie" ||
     name.includes("худи") ||
     name.includes("hoodie")
   ) {
@@ -187,6 +377,7 @@ function detectProductType(productName: string): string {
   }
 
   if (
+    type === "sweatshirt" ||
     name.includes("свитшот") ||
     name.includes("sweatshirt")
   ) {
@@ -194,6 +385,8 @@ function detectProductType(productName: string): string {
   }
 
   if (
+    type === "longsleeve" ||
+    type === "long sleeve" ||
     name.includes("лонгслив") ||
     name.includes("long sleeve") ||
     name.includes("longsleeve")
@@ -204,67 +397,78 @@ function detectProductType(productName: string): string {
   return "garment";
 }
 
-function detectFabric(fabric: string): {
-  isCotton: boolean;
-  normalized: string;
-} {
-  const normalized = fabric.toLowerCase();
+function isCottonFabric(
+  fabric: string,
+): boolean {
+  const value = fabric.toLowerCase();
 
-  const isCotton =
-    normalized.includes("хлопок") ||
-    normalized.includes("хб") ||
-    normalized.includes("cotton") ||
-    normalized.includes("пахта");
-
-  return {
-    isCotton,
-    normalized,
-  };
+  return (
+    value.includes("хлопок") ||
+    value.includes("хб") ||
+    value.includes("cotton") ||
+    value.includes("пахта")
+  );
 }
 
 export default defineEventHandler(async (event) => {
   try {
-    const body = (await readBody<GenerateBody>(event)) || {};
+    const body = await readBody<{
+      productType?: string;
+      productName?: string;
+      fabric?: string;
+      color?: string | null;
+      style?: string;
+      prompt?: string;
+      uploadedImageUrl?: string | null;
+    }>(event);
 
     const productName = normalizeText(
-      body.productName,
-      "garment",
+      body?.productName,
+      body?.productType || "garment",
+    );
+
+    const productType = normalizeText(
+      body?.productType,
+      "",
     );
 
     const fabric = normalizeText(
-      body.fabric,
+      body?.fabric,
       "textile",
     );
 
     const color = normalizeText(
-      body.color,
+      body?.color,
       "unspecified color",
     );
 
     const style = normalizeText(
-      body.style,
+      body?.style,
       "minimal",
     );
 
     const userPrompt = normalizeText(
-      body.prompt,
+      body?.prompt,
       "minimalist modern abstract graphic",
     );
 
     const uploadedImageUrl = normalizeText(
-      body.uploadedImageUrl,
+      body?.uploadedImageUrl,
       "",
     );
 
     console.log("=== FABRIKA AI GENERATION ===");
     console.log("productName:", productName);
+    console.log("productType:", productType);
     console.log("fabric:", fabric);
     console.log("color:", color);
     console.log("style:", style);
     console.log("userPrompt:", userPrompt);
     console.log(
       "uploadedImageUrl:",
-      uploadedImageUrl ? "provided" : "not provided",
+      uploadedImageUrl
+        ? "provided"
+        : "not provided",
     );
 
     // ============================================================
@@ -296,145 +500,109 @@ export default defineEventHandler(async (event) => {
     );
 
     // ============================================================
-    // GEMINI — FAQAT ARTWORK DESCRIPTION
+    // PRODUCT TYPE
     // ============================================================
 
-    let englishDesignDescription =
-      userPrompt;
+    const englishProductName =
+      detectProductType(
+        productName,
+        productType,
+      );
+
+    const isTshirt =
+      englishProductName === "t-shirt";
+
+    // ============================================================
+    // GEMINI STRUCTURED ANALYSIS
+    // ============================================================
 
     const geminiApiKey =
       process.env.GEMINI_API_KEY ||
       process.env.VITE_GEMINI_API_KEY ||
       "";
 
+    let artwork: ArtworkAnalysis = {
+      language: "unknown",
+      artworkDescription: userPrompt,
+      mainSubject: userPrompt,
+      colors: [],
+      style,
+      composition: "unspecified",
+      details: [],
+      background: "unspecified",
+    };
+
     if (geminiApiKey) {
       try {
-        const geminiInstruction = `
-Convert the user's design idea into a concise English description of the artwork to be printed on clothing.
-
-USER DESIGN IDEA:
-"${userPrompt}"
-
-Return ONLY the artwork description.
-
-Describe only:
-- the main subject or symbol
-- important colors
-- visual style
-- composition
-- important recognizable details
-- background or negative-space concept if explicitly mentioned
-
-Do NOT mention:
-- clothing
-- garments
-- t-shirts
-- hoodies
-- sweatshirts
-- people
-- models
-- mannequins
-- bodies
-- fabric
-- product photography
-- cameras
-- lighting
-- studio
-- mockups
-- catalogs
-
-Do not invent new objects, characters, symbols, colors, or concepts that were not requested.
-
-Example:
-Input:
-"с белой луной на чёрном фоне"
-
-Output:
-"a white moon centered on a black background, minimalist high-contrast graphic"
-
-Return ONLY one concise English sentence.
-`.trim();
-
-        const translatedText = await callGeminiWithRetry(
+        artwork = await analyzeArtworkWithGemini(
           geminiApiKey,
-          geminiInstruction,
+          userPrompt,
           3,
         );
-
-        if (translatedText) {
-          englishDesignDescription =
-            translatedText
-              .replace(/^["']|["']$/g, "")
-              .trim();
-        }
       } catch (geminiError: any) {
         console.error(
-          "Gemini xatosi:",
+          "Gemini structured analysis xatosi:",
           geminiError?.message || geminiError,
         );
 
-        // Gemini xato bo'lsa, foydalanuvchining original
-        // design promptidan foydalanamiz.
-        englishDesignDescription =
-          userPrompt;
+        // Gemini ishlamasa original prompt ishlatiladi.
+        artwork = {
+          language: "unknown",
+          artworkDescription: userPrompt,
+          mainSubject: userPrompt,
+          colors: [],
+          style,
+          composition: "unspecified",
+          details: [],
+          background: "unspecified",
+        };
       }
     } else {
       console.warn(
-        "GEMINI_API_KEY topilmadi. Original design prompt ishlatiladi.",
+        "GEMINI_API_KEY topilmadi. Original prompt ishlatiladi.",
       );
     }
-
-    // ============================================================
-    // PRODUCT TYPE
-    // ============================================================
-
-    const englishProductName =
-      detectProductType(productName);
-
-    const isTshirt =
-      englishProductName === "t-shirt";
-
-    // ============================================================
-    // FABRIC
-    // ============================================================
-
-    const {
-      isCotton,
-    } = detectFabric(fabric);
 
     // ============================================================
     // PRINT STYLE
     // ============================================================
 
-    const printStyleInstruction = isCotton
+    const cotton = isCottonFabric(fabric);
+
+    const printStyleInstruction = cotton
       ? `
-For the LEFT front-view garment, place the artwork as a clean, clearly visible chest print on the upper-left chest area.
+For the LEFT front-view garment, place the artwork as a clean,
+clearly visible print on the upper-left chest area.
 
-For the RIGHT back-view garment, place the exact same artwork in the corresponding upper-back print area.
+For the RIGHT back-view garment, place the EXACT SAME artwork
+in the corresponding upper-back print area.
 
-Preserve the same artwork composition, colors, shapes and visual identity.
-Keep all other fabric plain.
+Preserve the artwork's exact subject, colors, composition
+and visual identity.
+
+Keep all remaining garment fabric plain.
 `
       : `
-Apply the exact same artwork to BOTH garments as a continuous all-over print.
+Apply the EXACT SAME artwork to BOTH garments as a continuous
+all-over print covering the visible garment fabric.
 
-The artwork should naturally cover the visible fabric from edge to edge while remaining aligned with the garment surface.
-
-Do not redesign or reinterpret the artwork between the two garments.
+Preserve the same artwork identity, colors and composition
+on both garments.
 `;
 
     // ============================================================
-    // GARMENT-SPECIFIC INSTRUCTION
+    // GARMENT
     // ============================================================
 
     const garmentInstruction = isTshirt
       ? `
 Both garments are classic short-sleeve t-shirts.
-The sleeves are short.
-The garments have a standard crew-neck t-shirt silhouette.
+Standard short sleeves.
+Standard crew-neck t-shirt silhouette.
 `
       : `
-Both garments must clearly match the requested ${englishProductName} silhouette.
+Both garments clearly match the requested
+${englishProductName} silhouette.
 `;
 
     // ============================================================
@@ -444,44 +612,45 @@ Both garments must clearly match the requested ${englishProductName} silhouette.
     const negativePrompt = `
 person, human, model, mannequin, dress form,
 body, torso, head, face, hands, arms, legs, skin,
+
 hanger, hook, clothing rack, clips, stand,
 
-shoes, sneakers, socks, pants, jeans, shorts, skirt,
-bag, sunglasses, glasses, watch, jewelry, hat,
-phone, furniture, props, packaging, boxes,
+shoes, sneakers, socks, pants, jeans, shorts,
+skirt, bag, sunglasses, glasses, watch, jewelry,
+hat, phone, furniture, props, accessories,
 
-extra object, extra garment, third garment,
-more than two garments, duplicate garment,
-duplicate objects,
+packaging, boxes, extra objects,
+extra garment, third garment,
+more than two garments, duplicate garments,
 
 overlapping garments, touching garments,
 stacked garments, one garment on another,
-vertical arrangement, folded clothes, rolled clothes,
-tangled fabric, cropped garment, partial garment,
+vertical arrangement, folded clothing,
+rolled clothing, tangled fabric,
 
+cropped garment, partial garment,
 angled view, perspective view, side view,
 three-quarter view, standing garment,
 hanging garment, floating garment,
-body-shaped clothing, 3D clothing shape,
 
+body-shaped clothing, 3D clothing shape,
 deformed garment, malformed garment,
 distorted proportions, malformed sleeves,
 malformed collar, malformed neckline,
-extra sleeves, missing sleeves,
+extra sleeves,
 
 different colors, different shapes,
 different sizes, different fabric,
 different artwork, mismatched artwork,
-blank garment, plain garment,
-missing print, missing graphic,
+
+blank garment, missing print, missing graphic,
 invisible design, altered graphic,
 warped graphic, distorted graphic,
 duplicated graphic, random graphic,
-blurry print, low detail,
+blurry print, illegible design,
 
 low resolution, pixelated, noise, artifacts,
-CGI, 3D render, illustration, cartoon,
-painting,
+CGI, 3D render, illustration, cartoon, painting,
 
 gray background, colored background,
 textured background, non-white background,
@@ -498,87 +667,122 @@ text overlay, captions, watermark, UI
       .trim();
 
     // ============================================================
-    // FINAL POSITIVE PROMPT
+    // STABILITY PROMPT
     // ============================================================
+
+    const artworkDetails = [
+      `Main subject: ${artwork.mainSubject}`,
+      `Colors: ${artwork.colors.length
+        ? artwork.colors.join(", ")
+        : "preserve the artwork's original colors"
+      }`,
+      `Style: ${artwork.style || style}`,
+      `Composition: ${artwork.composition || "preserve the user's composition"
+      }`,
+      `Important details: ${artwork.details.length
+        ? artwork.details.join(", ")
+        : "preserve all recognizable details"
+      }`,
+      `Artwork background: ${artwork.background || "preserve the requested background"
+      }`,
+    ].join(". ");
 
     const finalPrompt = `
 Photorealistic commercial e-commerce flat-lay product photograph.
 
-Exactly TWO identical ${englishProductName} garments are shown together.
+Exactly TWO identical ${englishProductName} garments.
 
-The garments are placed SIDE BY SIDE HORIZONTALLY in one continuous composition, with clear white space between them.
+The garments are arranged SIDE BY SIDE HORIZONTALLY in one
+continuous composition with clear white space between them.
 
 The LEFT garment is a complete FRONT VIEW.
+
 The RIGHT garment is a complete BACK VIEW.
 
 Both garments are two physical copies of the SAME exact product.
 
-They have:
-- identical color
-- identical fabric
-- identical cut
-- identical size
-- identical proportions
-- identical construction
-- identical sleeves
-- identical collar
-- identical artwork treatment
+Identical:
+- color
+- fabric
+- cut
+- size
+- proportions
+- construction
+- sleeves
+- collar
+- artwork treatment
 
 ${garmentInstruction}
 
-ARTWORK:
-"${englishDesignDescription}"
+ARTWORK DESCRIPTION:
+"${artwork.artworkDescription}"
 
-The EXACT SAME artwork appears on BOTH garments.
+ARTWORK DETAILS:
+${artworkDetails}
 
-Preserve the artwork's recognizable subject, composition, colors and visual identity.
-Do not reinterpret the artwork.
-Do not create a different version of the artwork for the second garment.
+The EXACT SAME artwork must appear on BOTH garments.
+
+Preserve the same:
+- subject
+- visual identity
+- colors
+- composition
+- recognizable details
+
+Do not redesign the artwork between the two garments.
 
 ${printStyleInstruction}
 
-The print looks like a real physical garment print integrated naturally into the textile surface.
+The artwork is a real physical print integrated naturally
+into the textile surface.
 
-The full garments are completely visible from edge to edge.
+The complete garments are visible edge to edge.
 
-The garments are naturally laid flat on a completely pure white seamless background.
+Pure white seamless product-photography background.
 
 Straight overhead 90-degree camera.
-Front view on the left.
-Back view on the right.
-Horizontal composition.
+
+Front garment on the LEFT.
+Back garment on the RIGHT.
+
+Balanced horizontal composition.
 Equal visual scale.
-Equal distance between garments.
+Equal spacing.
 Centered composition.
 
 Realistic textile texture.
 Subtle natural fabric wrinkles.
-Natural fabric drape while remaining clearly flat.
 Soft diffused studio lighting.
 Very soft contact shadows.
-Accurate garment proportions.
+Accurate proportions.
 Sharp print details.
-Natural realistic colors.
+Natural colors.
 High photographic realism.
-Professional commercial product photography.
+Professional commercial e-commerce photography.
 `
       .replace(/\n{3,}/g, "\n\n")
       .trim();
 
     console.log(
-      "=== GENERATED ARTWORK DESCRIPTION ===",
+      "=== GEMINI STRUCTURED ARTWORK ===",
     );
+
     console.log(
-      englishDesignDescription,
+      JSON.stringify(
+        artwork,
+        null,
+        2,
+      ),
     );
 
     console.log(
       "=== FINAL STABILITY PROMPT ===",
     );
+
     console.log(finalPrompt);
 
     // ============================================================
-    // STABILITY API KEYS
+    // STABILITY KEYS
     // ============================================================
 
     const keysEnv =
@@ -599,10 +803,11 @@ Professional commercial product photography.
     }
 
     // ============================================================
-    // GENERATE WITH STABILITY
+    // STABILITY GENERATION
     // ============================================================
 
     let generatedImageUrl = "";
+
     const stabilityErrors: string[] = [];
 
     for (
@@ -610,24 +815,18 @@ Professional commercial product photography.
       i < stabilityKeys.length;
       i++
     ) {
-      const key = stabilityKeys[i];
-
       try {
         console.log(
-          `Stability AI: ${i + 1}/${stabilityKeys.length} kalit bilan urinish`,
+          `Stability AI: ${i + 1}/${stabilityKeys.length}`,
         );
 
         generatedImageUrl =
           await generateAndUpload(
             finalPrompt,
             negativePrompt,
-            key,
+            stabilityKeys[i],
             supabase,
           );
-
-        console.log(
-          "Stability AI muvaffaqiyatli ishladi.",
-        );
 
         break;
       } catch (error: any) {
@@ -643,36 +842,52 @@ Professional commercial product photography.
           "STABILITY AI XATOLIGI:",
           message,
         );
-
-        // Keyingi Stability API key bilan sinaymiz.
       }
     }
 
     if (!generatedImageUrl) {
       throw createError({
         statusCode: 500,
-        message: `Stability AI ishlamadi. ${stabilityErrors.join(
-          " | ",
-        )}`,
+        message:
+          `Stability AI ishlamadi. ${stabilityErrors.join(
+            " | ",
+          )}`,
       });
     }
 
     // ============================================================
-    // RESPONSE
+    // FULL RESPONSE
     // ============================================================
 
     return {
       success: true,
+
       frontImage: generatedImageUrl,
-      prompt: finalPrompt,
+
+      product: {
+        productType: englishProductName,
+        productName,
+        fabric,
+        color,
+        style,
+      },
+
+      artwork,
+
       translatedPrompt:
-        englishDesignDescription,
-      productType: englishProductName,
-      fabric,
-      color,
-      style,
-      hasReferenceImage:
-        Boolean(uploadedImageUrl),
+        artwork.artworkDescription,
+
+      prompt: finalPrompt,
+
+      negativePrompt,
+
+      metadata: {
+        aspectRatio: "16:9",
+        hasReferenceImage:
+          Boolean(uploadedImageUrl),
+        provider: "stability-ai",
+        textAnalyzer: "gemini-2.5-flash",
+      },
     };
   } catch (error: any) {
     console.error(
