@@ -35,33 +35,8 @@
       </button>
     </div>
 
-    <!-- Existing designs -->
-    <div v-if="activeTab === 'existing'" class="mt-4 grid grid-cols-3 gap-3">
-      <button
-        v-for="design in EXISTING_DESIGNS"
-        :key="design.id"
-        class="rounded-2xl border bg-white p-3 text-left transition"
-        :class="
-          selectedExisting === design.id
-            ? 'border-sage ring-2 ring-sage/10'
-            : 'border-line'
-        "
-        @click="selectExisting(design)"
-      >
-        <span
-          class="mb-3 block aspect-square rounded-xl"
-          :style="{ background: design.accent }"
-          ><span
-            class="flex h-full items-center justify-center text-xs font-bold text-ink/50"
-            >CF</span
-          ></span
-        >
-        <span class="text-xs font-bold">{{ design.name }}</span>
-      </button>
-    </div>
-
     <!-- Upload design & Gemini Dimension Extraction -->
-    <div v-else-if="activeTab === 'upload'">
+    <div>
       <label
         class="mt-4 block cursor-pointer rounded-2xl border border-dashed border-sage bg-mint p-4 transition"
         :class="{ 'opacity-60 pointer-events-none': uploadingLogo }"
@@ -153,7 +128,7 @@
     </div>
 
     <!-- AI design creation -->
-    <div v-else class="mt-4">
+    <div>
       <!-- GENERATION FORM (Faqat tahrirlash rejimida ko'rinadi) -->
       <div v-show="isEditingAi" class="space-y-4">
         <!-- Logo upload for AI -->
@@ -331,7 +306,7 @@
 </template>
 
 <script setup lang="ts">
-import { EXISTING_DESIGNS, FABRICS } from "~/config/catalog";
+import { FABRICS } from "~/config/catalog";
 import { DESIGN_STYLES, SHIRT_COLORS } from "~/types/design";
 import type { Design } from "~/types/order";
 import type {

@@ -16,8 +16,3 @@ export const FABRICS: Fabric[] = [
 export const STANDARD_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL']
 export const DELIVERY_PRICE = 5
 export const MANUFACTURING_DAYS = 7
-export const EXISTING_DESIGNS = [
-  { id: 'mono', name: 'Mono Line', accent: '#d7e5db' },
-  { id: 'terra', name: 'Terracotta', accent: '#e9c1b1' },
-  { id: 'wave', name: 'Soft Wave', accent: '#c8d9e1' }
-]
