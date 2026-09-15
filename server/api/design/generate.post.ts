@@ -829,13 +829,13 @@ while preserving its described colors and visual identity.
          NEGATIVE PROMPT
       -------------------------------------------------------- */
 
-      const negativePrompt = `one shirt, single shirt, extra shirt, third shirt, people, mannequin, hanger, folded shirt, overlapping shirts, beige background, gray background, colored background, wood, table`
+      const negativePrompt = `one shirt, third shirt, different shirt colors, missing print, blank shirt, beige background, gray background, brown background, wood, mannequin, person`
 
       /* --------------------------------------------------------
          FINAL STABILITY PROMPT
       -------------------------------------------------------- */
 
-      const finalPrompt = `Exactly two identical black t-shirts laid completely flat side by side horizontally on a pure white background. The left t-shirt shows its complete front. The right t-shirt shows its complete back. Both shirts are the same size, same color, same shape and same product.`
+      const finalPrompt = `Exactly two identical black t-shirts laid flat side by side horizontally on a pure white background. Left shirt is complete front view. Right shirt is complete back view. Both shirts are identical. A clearly visible white moon graphic is printed on the left chest of the front shirt and the same white moon graphic is printed on the corresponding upper-back position of the right shirt.`
 
       /* --------------------------------------------------------
          LOGS
