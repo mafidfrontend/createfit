@@ -70,7 +70,7 @@ async function callGeminiWithRetry(
 
       // To'g'ri SDK metodi va to'g'ri model nomi
       const response = await ai.models.generateContent({
-        model: "gemini-3.8-flash",
+        model: "gemini-2.5-flash",
         contents: promptText,
       });
 
