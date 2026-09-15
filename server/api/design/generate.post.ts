@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
 
 type ArtworkAnalysis = {
   language: string;
@@ -123,65 +123,40 @@ IMPORTANT:
         contents: instruction,
         config: {
           responseMimeType: "application/json",
-
           responseSchema: {
-            type: "object",
+            type: Type.OBJECT,
             properties: {
               language: {
-                type: "string",
-                description:
-                  "The detected language of the user's original design description.",
+                type: Type.STRING,
               },
-
               artworkDescription: {
-                type: "string",
-                description:
-                  "Concise English description of the artwork suitable for an image generation model.",
+                type: Type.STRING,
               },
-
               mainSubject: {
-                type: "string",
-                description:
-                  "The main subject, symbol, object, or visual element of the artwork.",
+                type: Type.STRING,
               },
-
               colors: {
-                type: "array",
+                type: Type.ARRAY,
                 items: {
-                  type: "string",
+                  type: Type.STRING,
                 },
-                description:
-                  "Important colors explicitly present or clearly implied in the artwork.",
               },
-
               style: {
-                type: "string",
-                description:
-                  "The requested or inferred visual style of the artwork.",
+                type: Type.STRING,
               },
-
               composition: {
-                type: "string",
-                description:
-                  "How the main visual elements are arranged.",
+                type: Type.STRING,
               },
-
               details: {
-                type: "array",
+                type: Type.ARRAY,
                 items: {
-                  type: "string",
+                  type: Type.STRING,
                 },
-                description:
-                  "Important recognizable visual details that should be preserved.",
               },
-
               background: {
-                type: "string",
-                description:
-                  "The artwork background or negative-space treatment.",
+                type: Type.STRING,
               },
             },
-
             required: [
               "language",
               "artworkDescription",
@@ -541,21 +516,15 @@ export default defineEventHandler(async (event) => {
         );
       } catch (geminiError: any) {
         console.error(
-          "Gemini structured analysis xatosi:",
-          geminiError?.message || geminiError,
+          "GEMINI STRUCTURED OUTPUT ERROR:",
+          geminiError,
         );
 
-        // Gemini ishlamasa original prompt ishlatiladi.
-        artwork = {
-          language: "unknown",
-          artworkDescription: userPrompt,
-          mainSubject: userPrompt,
-          colors: [],
-          style,
-          composition: "unspecified",
-          details: [],
-          background: "unspecified",
-        };
+        throw createError({
+          statusCode: 500,
+          message: `Gemini structured output xatosi: ${geminiError?.message || "Noma'lum xato"
+            }`,
+        });
       }
     } else {
       console.warn(
