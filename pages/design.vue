@@ -112,14 +112,14 @@
             <span class="text-ink/60">Длина:</span>
             <b class="text-right">{{ extractedDimensions.length_cm }} см</b>
           </div>
-          <div class="flex justify-between border-b border-sage/10 pb-1.5">
+          <!-- <div class="flex justify-between border-b border-sage/10 pb-1.5">
             <span class="text-ink/60">Плечи:</span>
             <b class="text-right">{{ extractedDimensions.shoulder_cm }} см</b>
           </div>
           <div class="flex justify-between pt-0.5">
             <span class="text-ink/60">Длина рукава:</span>
             <b class="text-right">{{ extractedDimensions.sleeve_cm }} см</b>
-          </div>
+          </div> -->
         </div>
       </div>
       <p v-if="extractError" class="mt-2 text-xs font-medium text-terracotta">

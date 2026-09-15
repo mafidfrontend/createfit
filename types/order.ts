@@ -18,7 +18,7 @@ export interface Design {
   aiFrontImage?: string | null
   aiBackImage?: string | null
 }
-export interface CustomMeasurements { height: string; chest: string; waist: string; hips: string; length: string; sleeve: string; other: string }
+export interface CustomMeasurements { height: string; chest: string; waist: string; hips: string; length: string; other: string }
 export interface SizeSelection { type: SizeType; standardSize: string | null; customMeasurements: CustomMeasurements | null; aiEstimated?: boolean; aiConfidence?: number }
 export interface Delivery { city: string; address: string; comment: string; price: number }
 export interface Customer { telegramId: number | null; firstName: string; lastName: string; username: string | null; phone: string; countryCode?: string }

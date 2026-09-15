@@ -140,10 +140,10 @@ const measurementFields: { key: keyof CustomMeasurements; label: string }[] = [
   { key: 'length', label: 'Длина изделия' },
   { key: 'waist', label: 'Талия' },
   { key: 'hips', label: 'Бёдра' },
-  { key: 'shoulder', label: 'Плечо' },
-  { key: 'sleeve', label: 'Длина рукава' }
+  // { key: 'shoulder', label: 'Плечо' },
+  // { key: 'sleeve', label: 'Длина рукава' }
 ]
-const measurements = reactive<CustomMeasurements>({ height: '', chest: '', waist: '', hips: '', length: '', sleeve: '', shoulder: '', other: '' })
+const measurements = reactive<CustomMeasurements>({ height: '', chest: '', waist: '', hips: '', length: '', other: '' })
 
 function selectStandard(size: string): void {
   isAiFilled.value = false
@@ -228,8 +228,8 @@ async function analyzePhoto(): Promise<void> {
       measurements.chest = dim.chest_cm ? String(dim.chest_cm) : ''
       measurements.waist = dim.waist_cm ? String(dim.waist_cm) : ''
       measurements.hips = dim.hips_cm ? String(dim.hips_cm) : ''
-      measurements.sleeve = dim.sleeve_cm ? String(dim.sleeve_cm) : ''
-      measurements.shoulder = dim.shoulder_cm ? String(dim.shoulder_cm) : ''
+      // measurements.sleeve = dim.sleeve_cm ? String(dim.sleeve_cm) : ''
+      // measurements.shoulder = dim.shoulder_cm ? String(dim.shoulder_cm) : ''
       
       isAiFilled.value = true
       
