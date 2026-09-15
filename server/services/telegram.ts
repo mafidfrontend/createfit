@@ -81,6 +81,7 @@ export function buildOrderMessage(data: OrderNotificationData): string {
     `Изделие: ${formatPriceUSD(data.productPrice)}`,
     `Ткань: ${formatPriceUSD(data.fabricPrice)}`,
     `Дизайн: ${formatPriceUSD(data.designPrice)}`,
+    `Доставка: ${formatPriceUSD(data.deliveryPrice)}`,
     '',
     `💰 Итого: ${formatPriceUSD(data.total)}`,
     '',
