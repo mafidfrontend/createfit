@@ -98,13 +98,12 @@ export const SHIRT_COLORS: ShirtColorOption[] = [
  * Backend expects `color`, not `shirtColor`.
  */
 export interface GenerateDesignRequest {
-  prompt: string
-  style: DesignStyle
+  productType: string
+  productName: string
+  fabric: string
   color: ShirtColor
-
-  productType?: string
-  productName?: string
-  fabric?: string
+  style: DesignStyle
+  prompt: string
   uploadedImageUrl?: string | null
 }
 
