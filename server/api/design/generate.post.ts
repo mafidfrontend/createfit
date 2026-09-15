@@ -1,6 +1,15 @@
 import { createClient } from "@supabase/supabase-js";
 import { GoogleGenAI } from "@google/genai";
 
+type GenerateBody = {
+  productName?: string;
+  fabric?: string;
+  color?: string;
+  style?: string;
+  prompt?: string;
+  uploadedImageUrl?: string;
+};
+
 async function generateAndUpload(
   prompt: string,
   negativePrompt: string,
@@ -8,6 +17,7 @@ async function generateAndUpload(
   supabase: any,
 ): Promise<string> {
   const formData = new FormData();
+
   formData.append("prompt", prompt);
   formData.append("negative_prompt", negativePrompt);
   formData.append("output_format", "png");
@@ -27,12 +37,18 @@ async function generateAndUpload(
 
   if (!response.ok) {
     const errText = await response.text();
-    throw new Error(`Stability xatosi: ${errText}`);
+
+    throw new Error(
+      `Stability AI xatosi (${response.status}): ${errText}`,
+    );
   }
 
   const imageArrayBuffer = await response.arrayBuffer();
   const imageBuffer = Buffer.from(imageArrayBuffer);
-  const uniqueFileName = `ai-generated-${Date.now()}.png`;
+
+  const uniqueFileName = `ai-generated-${Date.now()}-${Math.random()
+    .toString(36)
+    .slice(2, 8)}.png`;
 
   const { error: uploadError } = await supabase.storage
     .from("designs")
@@ -41,76 +57,226 @@ async function generateAndUpload(
       upsert: false,
     });
 
-  if (uploadError) throw new Error(`Supabase xatosi: ${uploadError.message}`);
+  if (uploadError) {
+    throw new Error(`Supabase Storage xatosi: ${uploadError.message}`);
+  }
 
   const { data: publicUrlData } = supabase.storage
     .from("designs")
     .getPublicUrl(uniqueFileName);
+
+  if (!publicUrlData?.publicUrl) {
+    throw new Error("Supabase public URL yaratilmadi");
+  }
+
   return publicUrlData.publicUrl;
 }
 
-// ===== GEMINI QAYTA URINISH FUNKSIYASI =====
 async function callGeminiWithRetry(
   geminiApiKey: string,
   promptText: string,
-  maxRetries: number = 3,
+  maxRetries = 3,
 ): Promise<string> {
   if (!geminiApiKey) {
     throw new Error("Gemini API kaliti topilmadi");
   }
 
-  const ai = new GoogleGenAI({ apiKey: geminiApiKey });
-  let lastError = null;
+  const ai = new GoogleGenAI({
+    apiKey: geminiApiKey,
+  });
+
+  let lastError: Error | null = null;
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       console.log(
-        `Gemini (1.5-flash) so'rovi: urinish ${attempt}/${maxRetries}`,
+        `Gemini (2.5-flash): urinish ${attempt}/${maxRetries}`,
       );
 
-      // To'g'ri SDK metodi va to'g'ri model nomi
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash",
         contents: promptText,
       });
 
-      if (!response || !response.text) {
+      const text = response?.text?.trim();
+
+      if (!text) {
         throw new Error("Gemini dan bo'sh javob keldi");
       }
 
       console.log(
-        `Gemini muvaffaqiyatli: ${response.text.substring(0, 50)}...`,
+        `Gemini muvaffaqiyatli: ${text.substring(0, 120)}...`,
       );
-      return response.text;
-    } catch (error: any) {
-      lastError = error;
-      const errorMessage = error.message || "";
-      const isAuthError =
-        errorMessage.includes("key") ||
-        errorMessage.includes("auth") ||
-        errorMessage.includes("403");
-      if (isAuthError)
-        throw new Error(`Gemini autentifikatsiya xatosi: ${errorMessage}`);
 
-      console.warn(`Gemini xatosi (${attempt}-urinish):`, errorMessage);
-      if (attempt === maxRetries) break;
-      const waitTime = Math.min(1000 * Math.pow(2, attempt - 1), 8000);
+      return text;
+    } catch (error: any) {
+      lastError =
+        error instanceof Error
+          ? error
+          : new Error(error?.message || "Noma'lum Gemini xatosi");
+
+      const errorMessage = lastError.message || "";
+      const normalized = errorMessage.toLowerCase();
+
+      const isAuthError =
+        normalized.includes("api key") ||
+        normalized.includes("api_key") ||
+        normalized.includes("authentication") ||
+        normalized.includes("unauthorized") ||
+        normalized.includes("forbidden") ||
+        errorMessage.includes("401") ||
+        errorMessage.includes("403");
+
+      if (isAuthError) {
+        throw new Error(
+          `Gemini autentifikatsiya xatosi: ${errorMessage}`,
+        );
+      }
+
+      console.warn(
+        `Gemini xatosi (${attempt}-urinish): ${errorMessage}`,
+      );
+
+      if (attempt === maxRetries) {
+        break;
+      }
+
+      const waitTime = Math.min(
+        1000 * Math.pow(2, attempt - 1),
+        8000,
+      );
+
       await new Promise((resolve) => setTimeout(resolve, waitTime));
     }
   }
 
-  throw new Error(`Gemini ishlamadi: ${lastError?.message || "Noma'lum xato"}`);
+  throw new Error(
+    `Gemini ishlamadi: ${lastError?.message || "Noma'lum xato"
+    }`,
+  );
+}
+
+function normalizeText(value: unknown, fallback = ""): string {
+  if (typeof value !== "string") return fallback;
+
+  const trimmed = value.trim();
+
+  if (!trimmed || trimmed.toLowerCase() === "null") {
+    return fallback;
+  }
+
+  return trimmed;
+}
+
+function detectProductType(productName: string): string {
+  const name = productName.toLowerCase();
+
+  if (
+    name.includes("футболка") ||
+    name.includes("t-shirt") ||
+    name.includes("tshirt")
+  ) {
+    return "t-shirt";
+  }
+
+  if (
+    name.includes("худи") ||
+    name.includes("hoodie")
+  ) {
+    return "hoodie";
+  }
+
+  if (
+    name.includes("свитшот") ||
+    name.includes("sweatshirt")
+  ) {
+    return "sweatshirt";
+  }
+
+  if (
+    name.includes("лонгслив") ||
+    name.includes("long sleeve") ||
+    name.includes("longsleeve")
+  ) {
+    return "long sleeve shirt";
+  }
+
+  return "garment";
+}
+
+function detectFabric(fabric: string): {
+  isCotton: boolean;
+  normalized: string;
+} {
+  const normalized = fabric.toLowerCase();
+
+  const isCotton =
+    normalized.includes("хлопок") ||
+    normalized.includes("хб") ||
+    normalized.includes("cotton") ||
+    normalized.includes("пахта");
+
+  return {
+    isCotton,
+    normalized,
+  };
 }
 
 export default defineEventHandler(async (event) => {
   try {
-    const body = await readBody(event);
-    const { productName, fabric, color, style, prompt, uploadedImageUrl } =
-      body;
+    const body = (await readBody<GenerateBody>(event)) || {};
+
+    const productName = normalizeText(
+      body.productName,
+      "garment",
+    );
+
+    const fabric = normalizeText(
+      body.fabric,
+      "textile",
+    );
+
+    const color = normalizeText(
+      body.color,
+      "unspecified color",
+    );
+
+    const style = normalizeText(
+      body.style,
+      "minimal",
+    );
+
+    const userPrompt = normalizeText(
+      body.prompt,
+      "minimalist modern abstract graphic",
+    );
+
+    const uploadedImageUrl = normalizeText(
+      body.uploadedImageUrl,
+      "",
+    );
+
+    console.log("=== FABRIKA AI GENERATION ===");
+    console.log("productName:", productName);
+    console.log("fabric:", fabric);
+    console.log("color:", color);
+    console.log("style:", style);
+    console.log("userPrompt:", userPrompt);
+    console.log(
+      "uploadedImageUrl:",
+      uploadedImageUrl ? "provided" : "not provided",
+    );
+
+    // ============================================================
+    // SUPABASE
+    // ============================================================
 
     const supabaseUrl =
-      process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+      process.env.SUPABASE_URL ||
+      process.env.VITE_SUPABASE_URL;
+
+    const serviceKey =
+      process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (!supabaseUrl || !serviceKey) {
       throw createError({
@@ -119,128 +285,310 @@ export default defineEventHandler(async (event) => {
       });
     }
 
-    const supabase = createClient(supabaseUrl, serviceKey, {
-      auth: { persistSession: false },
-    });
+    const supabase = createClient(
+      supabaseUrl,
+      serviceKey,
+      {
+        auth: {
+          persistSession: false,
+        },
+      },
+    );
 
-    let englishDesignDescription = `${color} ${productName}, made of ${fabric}. Style: ${style}. Concept: ${prompt}`;
+    // ============================================================
+    // GEMINI — FAQAT ARTWORK DESCRIPTION
+    // ============================================================
+
+    let englishDesignDescription =
+      userPrompt;
+
     const geminiApiKey =
-      process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
+      process.env.GEMINI_API_KEY ||
+      process.env.VITE_GEMINI_API_KEY ||
+      "";
 
-    // ===== 1. GEMINI SANITAR-PROMPT (Odamlarni yo'qotish va kiyimni majburlash) =====
     if (geminiApiKey) {
       try {
-        let geminiInstruction = `Act as an expert AI prompt engineer. The user wants a specific graphic, pattern, or text printed on a garment.
-        
-        User description: "${prompt}"
-        
-        CRITICAL RULES:
-        1. Describe ONLY the artwork, graphic, pattern, or logo itself. 
-        2. DO NOT describe the garment type.
-        3. DO NOT mention people, models, mannequins, faces, or bodies.
-        4. DO NOT mention backgrounds, grids, collages, or catalogs.
-        5. If the user prompt is vague (like "Make me design"), default to describing a "minimalist modern abstract graphic".
-        
-        Return ONLY the English description of the PRINT/ARTWORK. Nothing else.`;
+        const geminiInstruction = `
+Convert the user's design idea into a concise English description of the artwork to be printed on clothing.
 
-        if (uploadedImageUrl) {
-          geminiInstruction += `\n\nPlease also consider the visual style of this reference image: ${uploadedImageUrl}`;
-        }
+USER DESIGN IDEA:
+"${userPrompt}"
+
+Return ONLY the artwork description.
+
+Describe only:
+- the main subject or symbol
+- important colors
+- visual style
+- composition
+- important recognizable details
+- background or negative-space concept if explicitly mentioned
+
+Do NOT mention:
+- clothing
+- garments
+- t-shirts
+- hoodies
+- sweatshirts
+- people
+- models
+- mannequins
+- bodies
+- fabric
+- product photography
+- cameras
+- lighting
+- studio
+- mockups
+- catalogs
+
+Do not invent new objects, characters, symbols, colors, or concepts that were not requested.
+
+Example:
+Input:
+"с белой луной на чёрном фоне"
+
+Output:
+"a white moon centered on a black background, minimalist high-contrast graphic"
+
+Return ONLY one concise English sentence.
+`.trim();
 
         const translatedText = await callGeminiWithRetry(
           geminiApiKey,
           geminiInstruction,
           3,
         );
-        if (translatedText && translatedText.trim().length > 0) {
-          englishDesignDescription = translatedText.trim();
+
+        if (translatedText) {
+          englishDesignDescription =
+            translatedText
+              .replace(/^["']|["']$/g, "")
+              .trim();
         }
       } catch (geminiError: any) {
-        console.error("Gemini xatosi:", geminiError.message);
+        console.error(
+          "Gemini xatosi:",
+          geminiError?.message || geminiError,
+        );
+
+        // Gemini xato bo'lsa, foydalanuvchining original
+        // design promptidan foydalanamiz.
+        englishDesignDescription =
+          userPrompt;
       }
+    } else {
+      console.warn(
+        "GEMINI_API_KEY topilmadi. Original design prompt ishlatiladi.",
+      );
     }
 
-    // ===== 2. MATOGA QARAB MANTIQ (Antonina qoidasi) =====
-    const fabricName = fabric?.toLowerCase() || "";
+    // ============================================================
+    // PRODUCT TYPE
+    // ============================================================
 
-    const isCotton =
-      fabricName.includes("хлопок") ||
-      fabricName.includes("хб") ||
-      fabricName.includes("cotton") ||
-      fabricName.includes("пахта");
+    const englishProductName =
+      detectProductType(productName);
+
+    const isTshirt =
+      englishProductName === "t-shirt";
+
+    // ============================================================
+    // FABRIC
+    // ============================================================
+
+    const {
+      isCotton,
+    } = detectFabric(fabric);
+
+    // ============================================================
+    // PRINT STYLE
+    // ============================================================
 
     const printStyleInstruction = isCotton
-      ? "For the front garment, place the artwork as a small, clean logo on the left chest area. For the back garment, place the same artwork in the corresponding upper-back print area. Keep all other fabric plain."
-      : "Apply the same artwork as a continuous all-over print across the visible fabric of both garments, covering the fabric naturally from edge to edge.";
+      ? `
+For the LEFT front-view garment, place the artwork as a clean, clearly visible chest print on the upper-left chest area.
 
-    // ===== 3. FUTBOLKANI MAJBURLASH (Longsleeve bo'lib ketmasligi uchun) =====
-    const isTshirt =
-      productName?.toLowerCase().includes("футболка") ||
-      productName?.toLowerCase().includes("t-shirt");
-    const sleeveInstruction = isTshirt
-      ? "SHORT SLEEVES ONLY, strictly a t-shirt shape, NO long sleeves."
-      : "";
+For the RIGHT back-view garment, place the exact same artwork in the corresponding upper-back print area.
 
-    // ===== 1. MAHSULOT NOMINI INGLIZ TILIGA O'GIRISH =====
-    let englishProductName = 'garment';
-    const prodName = productName?.toLowerCase() || '';
-    if (prodName.includes('футболка') || prodName.includes('t-shirt')) {
-      englishProductName = 't-shirt';
-    } else if (prodName.includes('худи') || prodName.includes('hoodie')) {
-      englishProductName = 'hoodie';
-    } else if (prodName.includes('свитшот') || prodName.includes('sweatshirt')) {
-      englishProductName = 'sweatshirt';
-    } else if (prodName.includes('лонгслив') || prodName.includes('longsleeve')) {
-      englishProductName = 'long sleeve shirt';
-    }
+Preserve the same artwork composition, colors, shapes and visual identity.
+Keep all other fabric plain.
+`
+      : `
+Apply the exact same artwork to BOTH garments as a continuous all-over print.
 
-    // ===== 2. NEGATIVE PROMPT (BIRINCHI NAVBATDA, MAXSIMAL DETALLASHGAN) =====
+The artwork should naturally cover the visible fabric from edge to edge while remaining aligned with the garment surface.
+
+Do not redesign or reinterpret the artwork between the two garments.
+`;
+
+    // ============================================================
+    // GARMENT-SPECIFIC INSTRUCTION
+    // ============================================================
+
+    const garmentInstruction = isTshirt
+      ? `
+Both garments are classic short-sleeve t-shirts.
+The sleeves are short.
+The garments have a standard crew-neck t-shirt silhouette.
+`
+      : `
+Both garments must clearly match the requested ${englishProductName} silhouette.
+`;
+
+    // ============================================================
+    // NEGATIVE PROMPT
+    // ============================================================
+
     const negativePrompt = `
-person, human, model, mannequin, dress form, body, head, face, hands, arms, legs, skin,
-hanger, rack, clips, stand, shoes, pants, jeans, shorts, skirt, bag, accessories, furniture, props,
-packaging, extra objects, extra garment, third garment, more than two garments, duplicate objects,
-overlap, touching garments, stacked garments, folded clothing, cropped garment, partial garment,
-angled view, perspective view, side view, three-quarter view, hanging garment, standing garment,
-floating garment, body-shaped clothing, 3D clothing,
-deformed garment, distorted proportions, malformed sleeves, malformed collar, extra sleeves,
-different colors, different garment shapes, different sizes, different artwork,
-blank garment, missing print, missing graphic, invisible design, altered graphic,
-warped graphic, duplicated graphic, random graphic, blurry print, illegible design,
-low resolution, pixelated, noise, artifacts, CGI, 3D render, illustration, cartoon, painting,
-gray background, colored background, textured background, non-white background,
-room, scenery, studio equipment, collage, montage, grid, multiple panels,
-split screen, border, dividing line, watermark, text overlay, UI
-`.replace(/\s+/g, " ").trim();
+person, human, model, mannequin, dress form,
+body, torso, head, face, hands, arms, legs, skin,
+hanger, hook, clothing rack, clips, stand,
 
-    // ===== 3. POSITIVE PROMPT (HAR BIR DETAL ALOHIDA BLOKDA) =====
+shoes, sneakers, socks, pants, jeans, shorts, skirt,
+bag, sunglasses, glasses, watch, jewelry, hat,
+phone, furniture, props, packaging, boxes,
+
+extra object, extra garment, third garment,
+more than two garments, duplicate garment,
+duplicate objects,
+
+overlapping garments, touching garments,
+stacked garments, one garment on another,
+vertical arrangement, folded clothes, rolled clothes,
+tangled fabric, cropped garment, partial garment,
+
+angled view, perspective view, side view,
+three-quarter view, standing garment,
+hanging garment, floating garment,
+body-shaped clothing, 3D clothing shape,
+
+deformed garment, malformed garment,
+distorted proportions, malformed sleeves,
+malformed collar, malformed neckline,
+extra sleeves, missing sleeves,
+
+different colors, different shapes,
+different sizes, different fabric,
+different artwork, mismatched artwork,
+blank garment, plain garment,
+missing print, missing graphic,
+invisible design, altered graphic,
+warped graphic, distorted graphic,
+duplicated graphic, random graphic,
+blurry print, low detail,
+
+low resolution, pixelated, noise, artifacts,
+CGI, 3D render, illustration, cartoon,
+painting,
+
+gray background, colored background,
+textured background, non-white background,
+gradient background, room, scenery,
+studio equipment,
+
+collage, montage, template, mockup,
+grid, split screen, multiple panels,
+border, dividing line,
+
+text overlay, captions, watermark, UI
+`
+      .replace(/\s+/g, " ")
+      .trim();
+
+    // ============================================================
+    // FINAL POSITIVE PROMPT
+    // ============================================================
+
     const finalPrompt = `
-Photorealistic commercial e-commerce flat-lay photograph of exactly two identical ${englishProductName} garments on a completely pure white background.
+Photorealistic commercial e-commerce flat-lay product photograph.
 
-Two garments only. They are placed side by side horizontally, with clear empty white space between them. The garments do not overlap, touch, stack, or intersect.
+Exactly TWO identical ${englishProductName} garments are shown together.
 
-The LEFT garment is a front view, showing the complete front of the garment.
-The RIGHT garment is a back view, showing the complete back of the garment.
+The garments are placed SIDE BY SIDE HORIZONTALLY in one continuous composition, with clear white space between them.
 
-Both garments are the same physical product: identical color, identical fabric, identical cut, identical size, identical proportions, identical sleeves, identical collar, identical construction and identical design treatment. They must look like two copies of the same garment.
+The LEFT garment is a complete FRONT VIEW.
+The RIGHT garment is a complete BACK VIEW.
 
-The artwork is "${englishDesignDescription}".
+Both garments are two physical copies of the SAME exact product.
 
-The same artwork is visibly printed on BOTH garments. The print must look like a real physical garment print integrated into the fabric, with sharp edges, accurate colors and recognizable details.
+They have:
+- identical color
+- identical fabric
+- identical cut
+- identical size
+- identical proportions
+- identical construction
+- identical sleeves
+- identical collar
+- identical artwork treatment
+
+${garmentInstruction}
+
+ARTWORK:
+"${englishDesignDescription}"
+
+The EXACT SAME artwork appears on BOTH garments.
+
+Preserve the artwork's recognizable subject, composition, colors and visual identity.
+Do not reinterpret the artwork.
+Do not create a different version of the artwork for the second garment.
 
 ${printStyleInstruction}
 
-The print must remain attached to the garment surface and follow the natural shape of the fabric. Do not invent a second different artwork. Do not change the artwork between the two garments.
+The print looks like a real physical garment print integrated naturally into the textile surface.
 
-The garments are naturally laid flat with realistic textile texture and only subtle natural fabric wrinkles. The full garments are visible from edge to edge.
+The full garments are completely visible from edge to edge.
 
-Straight overhead 90-degree camera. Front view on the left, back view on the right. Balanced horizontal composition. Equal visual scale. Equal distance from the camera. Pure white seamless background. Soft diffused studio lighting. Very soft contact shadows beneath the garments. Realistic textile material. Photorealistic product photography. Clean commercial catalog aesthetic. High detail and natural proportions.
-`.trim();
+The garments are naturally laid flat on a completely pure white seamless background.
+
+Straight overhead 90-degree camera.
+Front view on the left.
+Back view on the right.
+Horizontal composition.
+Equal visual scale.
+Equal distance between garments.
+Centered composition.
+
+Realistic textile texture.
+Subtle natural fabric wrinkles.
+Natural fabric drape while remaining clearly flat.
+Soft diffused studio lighting.
+Very soft contact shadows.
+Accurate garment proportions.
+Sharp print details.
+Natural realistic colors.
+High photographic realism.
+Professional commercial product photography.
+`
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+
+    console.log(
+      "=== GENERATED ARTWORK DESCRIPTION ===",
+    );
+    console.log(
+      englishDesignDescription,
+    );
+
+    console.log(
+      "=== FINAL STABILITY PROMPT ===",
+    );
+    console.log(finalPrompt);
+
+    // ============================================================
+    // STABILITY API KEYS
+    // ============================================================
 
     const keysEnv =
-      process.env.STABILITY_API_KEYS || process.env.STABILITY_API_KEY || "";
+      process.env.STABILITY_API_KEYS ||
+      process.env.STABILITY_API_KEY ||
+      "";
+
     const stabilityKeys = keysEnv
       .split(",")
-      .map((k) => k.trim())
+      .map((key) => key.trim())
       .filter(Boolean);
 
     if (stabilityKeys.length === 0) {
@@ -250,42 +598,94 @@ Straight overhead 90-degree camera. Front view on the left, back view on the rig
       });
     }
 
-    let generatedImageUrl = "";
-    let lastError = null;
+    // ============================================================
+    // GENERATE WITH STABILITY
+    // ============================================================
 
-    for (let i = 0; i < stabilityKeys.length; i++) {
+    let generatedImageUrl = "";
+    const stabilityErrors: string[] = [];
+
+    for (
+      let i = 0;
+      i < stabilityKeys.length;
+      i++
+    ) {
       const key = stabilityKeys[i];
+
       try {
-        generatedImageUrl = await generateAndUpload(
-          finalPrompt,
-          negativePrompt,
-          key,
-          supabase,
+        console.log(
+          `Stability AI: ${i + 1}/${stabilityKeys.length} kalit bilan urinish`,
         );
+
+        generatedImageUrl =
+          await generateAndUpload(
+            finalPrompt,
+            negativePrompt,
+            key,
+            supabase,
+          );
+
+        console.log(
+          "Stability AI muvaffaqiyatli ishladi.",
+        );
+
         break;
       } catch (error: any) {
-        console.error("STABILITY AI XATOLIGI:", error.data || error.message || error);
-        throw createError({ statusCode: 500, statusMessage: 'Xatolik yuz berdi' });
+        const message =
+          error?.message ||
+          "Noma'lum Stability xatosi";
+
+        stabilityErrors.push(
+          `Key ${i + 1}: ${message}`,
+        );
+
+        console.error(
+          "STABILITY AI XATOLIGI:",
+          message,
+        );
+
+        // Keyingi Stability API key bilan sinaymiz.
       }
     }
 
     if (!generatedImageUrl) {
       throw createError({
         statusCode: 500,
-        message: `Stability ishlamadi: ${lastError?.message}`,
+        message: `Stability AI ishlamadi. ${stabilityErrors.join(
+          " | ",
+        )}`,
       });
     }
+
+    // ============================================================
+    // RESPONSE
+    // ============================================================
 
     return {
       success: true,
       frontImage: generatedImageUrl,
       prompt: finalPrompt,
-      translatedPrompt: englishDesignDescription,
+      translatedPrompt:
+        englishDesignDescription,
+      productType: englishProductName,
+      fabric,
+      color,
+      style,
+      hasReferenceImage:
+        Boolean(uploadedImageUrl),
     };
   } catch (error: any) {
+    console.error(
+      "DESIGN GENERATION ERROR:",
+      error,
+    );
+
     throw createError({
-      statusCode: error.statusCode || 500,
-      message: error.message || "Dizayn yaratishda xatolik yuz berdi",
+      statusCode:
+        error?.statusCode || 500,
+      message:
+        error?.message ||
+        "Dizayn yaratishda xatolik yuz berdi",
     });
   }
 });
