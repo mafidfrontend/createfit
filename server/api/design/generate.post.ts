@@ -11,7 +11,7 @@ async function generateAndUpload(
   formData.append("prompt", prompt);
   formData.append("negative_prompt", negativePrompt);
   formData.append("output_format", "png");
-  formData.append("aspect_ratio", "4:5");
+  formData.append("aspect_ratio", "16:9");
 
   const response = await fetch(
     "https://api.stability.ai/v2beta/stable-image/generate/core",
@@ -70,7 +70,7 @@ async function callGeminiWithRetry(
 
       // To'g'ri SDK metodi va to'g'ri model nomi
       const response = await ai.models.generateContent({
-        model: "gemini-1.5-flash",
+        model: "gemini-3.8-flash",
         contents: promptText,
       });
 
@@ -161,12 +161,17 @@ export default defineEventHandler(async (event) => {
     }
 
     // ===== 2. MATOGA QARAB MANTIQ (Antonina qoidasi) =====
+    const fabricName = fabric?.toLowerCase() || "";
+
     const isCotton =
-      fabric?.toLowerCase().includes("хлопок") ||
-      fabric?.toLowerCase().includes("хб");
+      fabricName.includes("хлопок") ||
+      fabricName.includes("хб") ||
+      fabricName.includes("cotton") ||
+      fabricName.includes("пахта");
+
     const printStyleInstruction = isCotton
-      ? "Design requirement: Place the design ONLY as a small, neat logo strictly on the left chest area. The rest of the garment MUST remain completely blank and plain."
-      : "Design requirement: Create a seamless ALL-OVER print. The design and pattern MUST cover the entire fabric of the garment completely from edge to edge.";
+      ? "For the front garment, place the artwork as a small, clean logo on the left chest area. For the back garment, place the same artwork in the corresponding upper-back print area. Keep all other fabric plain."
+      : "Apply the same artwork as a continuous all-over print across the visible fabric of both garments, covering the fabric naturally from edge to edge.";
 
     // ===== 3. FUTBOLKANI MAJBURLASH (Longsleeve bo'lib ketmasligi uchun) =====
     const isTshirt =
@@ -190,14 +195,46 @@ export default defineEventHandler(async (event) => {
     }
 
     // ===== 2. NEGATIVE PROMPT (BIRINCHI NAVBATDA, MAXSIMAL DETALLASHGAN) =====
-    const negativePrompt = `person, human, model, mannequin, ghost mannequin, dress form, dummy, body, torso, head, face, hands, arms, legs, skin, hanger, hook, clothing rack, clips, pins, stand, shoes, sneakers, socks, pants, jeans, shorts, skirt, bag, sunglasses, glasses, watch, jewelry, hat, phone, furniture, props, accessories, packaging, boxes, extra garment, third garment, more than two garments, duplicate garments, clothing pile, overlapping garments, touching garments, stacked garments, one garment on top of another, vertical stacking, folded clothes, rolled clothes, tangled fabric, cropped garment, partial garment, perspective view, angled view, side view, three-quarter view, standing garment, hanging garment, floating garment, body-shaped clothing, 3D clothing shape, excessive wrinkles, deep folds, distorted proportions, deformed garment, malformed sleeves, malformed collar, malformed neckline, extra sleeves, inconsistent garments, different colors, different shapes, different sizes, different designs, front and back mismatch, blank garment, plain garment, empty garment, unprinted garment, missing graphic, missing print, invisible design, faded design, incorrect graphic, distorted graphic, warped graphic, broken graphic, duplicated graphic, random graphic, blurry print, low detail, low resolution, pixelated, noise, artifacts, CGI, 3D render, illustration, cartoon, painting, harsh shadows, dramatic shadows, colored background, gray background, textured background, non-white background, gradient background, room, studio equipment, scenery, collage, montage, template, mockup, grid, split screen, multiple panels, borders, dividing lines, branding kit, catalog layout, text overlay, captions, watermark, UI`
+    const negativePrompt = `
+person, human, model, mannequin, dress form, body, head, face, hands, arms, legs, skin,
+hanger, rack, clips, stand, shoes, pants, jeans, shorts, skirt, bag, accessories, furniture, props,
+packaging, extra objects, extra garment, third garment, more than two garments, duplicate objects,
+overlap, touching garments, stacked garments, folded clothing, cropped garment, partial garment,
+angled view, perspective view, side view, three-quarter view, hanging garment, standing garment,
+floating garment, body-shaped clothing, 3D clothing,
+deformed garment, distorted proportions, malformed sleeves, malformed collar, extra sleeves,
+different colors, different garment shapes, different sizes, different artwork,
+blank garment, missing print, missing graphic, invisible design, altered graphic,
+warped graphic, duplicated graphic, random graphic, blurry print, illegible design,
+low resolution, pixelated, noise, artifacts, CGI, 3D render, illustration, cartoon, painting,
+gray background, colored background, textured background, non-white background,
+room, scenery, studio equipment, collage, montage, grid, multiple panels,
+split screen, border, dividing line, watermark, text overlay, UI
+`.replace(/\s+/g, " ").trim();
 
     // ===== 3. POSITIVE PROMPT (HAR BIR DETAL ALOHIDA BLOKDA) =====
-    const finalPrompt = `A photorealistic e-commerce product photograph showing exactly two identical ${englishProductName} garments laid completely flat side by side on a clean pure white surface. The two garments are separate, evenly spaced, fully visible and arranged horizontally in the same orientation. The garment on the left clearly shows its front side, while the identical garment on the right clearly shows its back side. Both garments have the same color, shape, fabric, proportions and construction.
+    const finalPrompt = `
+Photorealistic commercial e-commerce flat-lay photograph of exactly two identical ${englishProductName} garments on a completely pure white background.
 
-The graphic design "${englishDesignDescription}" is clearly and visibly printed on both garments, with ${printStyleInstruction}. The design is an actual physical print integrated naturally into the fabric, following the garment's surface and shape with sharp, accurate and clearly recognizable details. The graphic must be prominently visible and preserved on both the front and back garments according to the specified print style.
+Two garments only. They are placed side by side horizontally, with clear empty white space between them. The garments do not overlap, touch, stack, or intersect.
 
-The garments are naturally spread flat on the surface with realistic fabric texture and subtle natural wrinkles. Direct overhead 90-degree camera view, centered composition, professional commercial e-commerce photography, clean pure white background, soft diffused studio lighting, very soft contact shadows, realistic cotton or textile material, accurate proportions, crisp details, natural colors, high photographic realism.`;
+The LEFT garment is a front view, showing the complete front of the garment.
+The RIGHT garment is a back view, showing the complete back of the garment.
+
+Both garments are the same physical product: identical color, identical fabric, identical cut, identical size, identical proportions, identical sleeves, identical collar, identical construction and identical design treatment. They must look like two copies of the same garment.
+
+The artwork is "${englishDesignDescription}".
+
+The same artwork is visibly printed on BOTH garments. The print must look like a real physical garment print integrated into the fabric, with sharp edges, accurate colors and recognizable details.
+
+${printStyleInstruction}
+
+The print must remain attached to the garment surface and follow the natural shape of the fabric. Do not invent a second different artwork. Do not change the artwork between the two garments.
+
+The garments are naturally laid flat with realistic textile texture and only subtle natural fabric wrinkles. The full garments are visible from edge to edge.
+
+Straight overhead 90-degree camera. Front view on the left, back view on the right. Balanced horizontal composition. Equal visual scale. Equal distance from the camera. Pure white seamless background. Soft diffused studio lighting. Very soft contact shadows beneath the garments. Realistic textile material. Photorealistic product photography. Clean commercial catalog aesthetic. High detail and natural proportions.
+`.trim();
 
     const keysEnv =
       process.env.STABILITY_API_KEYS || process.env.STABILITY_API_KEY || "";
