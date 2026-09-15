@@ -69,6 +69,15 @@
           </label>
         </div>
 
+        <details class="mt-4 overflow-hidden rounded-xl border border-line bg-cream">
+          <summary class="cursor-pointer px-3 py-2.5 text-xs font-bold text-sage">Пример правильного фото</summary>
+          <div class="border-t border-line bg-white p-2">
+            <img src="/images/image1.jpg" alt="Пример фото спереди и сбоку с листом А4" class="w-full rounded-lg" />
+          </div>
+        </details>
+
+        
+
         <!-- Hisoblash tugmasi -->
         <button class="mt-4 w-full rounded-xl bg-sage px-5 py-3 text-sm font-bold text-white transition hover:bg-[#0a4ad4] disabled:cursor-not-allowed disabled:opacity-50" :disabled="!frontPhotoPreview || !sidePhotoPreview || !userHeight || !userPhoneModel || analyzing" @click="analyzePhoto">
           <span v-if="analyzing" class="flex items-center justify-center gap-2">
