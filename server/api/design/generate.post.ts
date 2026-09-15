@@ -65,22 +65,23 @@ async function callGeminiWithRetry(
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       console.log(
-        `Gemini (3.8-flash) so'rovi: urinish ${attempt}/${maxRetries}`,
+        `Gemini (1.5-flash) so'rovi: urinish ${attempt}/${maxRetries}`,
       );
 
-      const interaction = await ai.interactions.create({
-        model: "gemini-3.8-flash",
-        input: promptText,
+      // To'g'ri SDK metodi va to'g'ri model nomi
+      const response = await ai.models.generateContent({
+        model: "gemini-1.5-flash",
+        contents: promptText,
       });
 
-      if (!interaction || !interaction.output_text) {
+      if (!response || !response.text) {
         throw new Error("Gemini dan bo'sh javob keldi");
       }
 
       console.log(
-        `Gemini muvaffaqiyatli: ${interaction.output_text.substring(0, 50)}...`,
+        `Gemini muvaffaqiyatli: ${response.text.substring(0, 50)}...`,
       );
-      return interaction.output_text;
+      return response.text;
     } catch (error: any) {
       lastError = error;
       const errorMessage = error.message || "";
@@ -90,6 +91,8 @@ async function callGeminiWithRetry(
         errorMessage.includes("403");
       if (isAuthError)
         throw new Error(`Gemini autentifikatsiya xatosi: ${errorMessage}`);
+
+      console.warn(`Gemini xatosi (${attempt}-urinish):`, errorMessage);
       if (attempt === maxRetries) break;
       const waitTime = Math.min(1000 * Math.pow(2, attempt - 1), 8000);
       await new Promise((resolve) => setTimeout(resolve, waitTime));
