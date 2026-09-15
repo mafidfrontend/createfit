@@ -588,6 +588,10 @@ shoes, sneakers, socks, pants, jeans, shorts,
 skirt, bag, sunglasses, glasses, watch, jewelry,
 hat, phone, furniture, props, accessories,
 
+black rectangle, black square, rectangular background,
+background box, printed box, artwork panel, framed graphic,
+visible rectangular print background
+
 packaging, boxes, extra objects,
 extra garment, third garment,
 more than two garments, duplicate garments,
@@ -656,21 +660,28 @@ text overlay, captions, watermark, UI
       }`,
     ].join(". ");
 
+    const garmentInstruction = isTshirt
+      ? `
+Both garments are classic short-sleeve t-shirts.
+Standard short sleeves.
+Standard crew-neck t-shirt silhouette.
+`
+      : `
+Both garments must clearly match the requested ${englishProductName} silhouette.
+`;
+
     const finalPrompt = `
-Photorealistic commercial e-commerce flat-lay product photograph.
+Photorealistic commercial e-commerce flat-lay photograph.
 
-Exactly TWO identical ${englishProductName} garments.
+EXACTLY TWO identical ${englishProductName} garments.
 
-The garments are arranged SIDE BY SIDE HORIZONTALLY in one
-continuous composition with clear white space between them.
+GARMENT COLOR:
+Both garments are solid ${color} in color.
+Both garments have exactly the same garment color.
 
-The LEFT garment is a complete FRONT VIEW.
-
-The RIGHT garment is a complete BACK VIEW.
-
-Both garments are two physical copies of the SAME exact product.
-
-Identical:
+PRODUCT CONSISTENCY:
+Both garments are two physical copies of the same exact product.
+They have identical:
 - color
 - fabric
 - cut
@@ -679,55 +690,76 @@ Identical:
 - construction
 - sleeves
 - collar
-- artwork treatment
+
+PLACEMENT:
+The two garments are placed side by side horizontally.
+They are fully separated with visible white space between them.
+They do not overlap or touch.
+
+VIEW:
+LEFT garment = complete front view.
+RIGHT garment = complete back view.
 
 ${garmentInstruction}
 
-ARTWORK DESCRIPTION:
-"${artwork.artworkDescription}"
+ARTWORK:
+${artwork.artworkDescription}
+
+ARTWORK COLORS:
+${artwork.colors.length
+        ? artwork.colors.join(", ")
+        : "preserve the artwork's described colors"
+      }
+
+ARTWORK COMPOSITION:
+${artwork.composition}
 
 ARTWORK DETAILS:
-${artworkDetails}
+${artwork.details.length
+        ? artwork.details.join(", ")
+        : "preserve all recognizable visual details"
+      }
 
-The EXACT SAME artwork must appear on BOTH garments.
+PRINT CONSISTENCY:
+The EXACT SAME artwork must appear on both garments.
+Preserve the same subject, colors, composition, proportions and visual identity.
+Do not redesign, reinterpret, simplify or replace the artwork on the second garment.
 
-Preserve the same:
-- subject
-- visual identity
-- colors
-- composition
-- recognizable details
+PRINT PLACEMENT:
+For the LEFT front garment, place the artwork as a clean upper-left chest print.
 
-Do not redesign the artwork between the two garments.
+For the RIGHT back garment, place the EXACT SAME artwork in the corresponding upper-back position.
 
-${printStyleInstruction}
+Keep all other garment areas plain.
 
-The artwork is a real physical print integrated naturally
-into the textile surface.
+BLACK BACKGROUND HANDLING:
+If the artwork includes a black background and the garment itself is black,
+treat the black garment surface as the visual negative space of the artwork.
+Do not create a visible rectangular, square or boxed black background around the print.
 
-The complete garments are visible edge to edge.
+The artwork must appear directly printed onto the fabric.
+It must follow the natural textile surface.
 
-Pure white seamless product-photography background.
-
+COMPOSITION:
+Complete garments visible from edge to edge.
 Straight overhead 90-degree camera.
-
-Front garment on the LEFT.
-Back garment on the RIGHT.
-
-Balanced horizontal composition.
+Horizontal side-by-side composition.
 Equal visual scale.
 Equal spacing.
 Centered composition.
 
-Realistic textile texture.
-Subtle natural fabric wrinkles.
+BACKGROUND:
+Pure white seamless background.
+
+PHOTOGRAPHY:
 Soft diffused studio lighting.
 Very soft contact shadows.
-Accurate proportions.
+Realistic textile texture.
+Subtle natural wrinkles.
+Accurate garment proportions.
 Sharp print details.
-Natural colors.
-High photographic realism.
-Professional commercial e-commerce photography.
+Natural realistic colors.
+Photorealistic commercial e-commerce product photography.
 `
       .replace(/\n{3,}/g, "\n\n")
       .trim();
