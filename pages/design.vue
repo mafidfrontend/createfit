@@ -173,8 +173,7 @@
           </div>
         </div>
 
-        <!-- Style -->
-        <div>
+        <!-- <div>
           <label class="text-sm font-bold">Стиль</label>
           <div class="mt-2 grid grid-cols-3 gap-2">
             <button
@@ -194,7 +193,6 @@
           </div>
         </div>
 
-        <!-- Color -->
         <div>
           <label class="text-sm font-bold"
             >Цвет изделия
@@ -219,7 +217,7 @@
               <span class="text-xs font-bold">{{ color.name }}</span>
             </button>
           </div>
-        </div>
+        </div> -->
 
         <!-- Prompt -->
         <div>
