@@ -558,14 +558,14 @@ async function generate(): Promise<void> {
 }
 
 function goNext(): void {
-  if (!order.draft.fabric) {
-    error.value = "Выберите ткань";
-    return;
-  }
-  if (!order.draft.design) {
-    error.value = "Выберите дизайн или создайте свой";
-    return;
-  }
+  // if (!order.draft.fabric) {
+  //   error.value = "Выберите ткань";
+  //   return;
+  // }
+  // if (!order.draft.design) {
+  //   error.value = "Выберите дизайн или создайте свой";
+  //   return;
+  // }
   navigateTo("/measurements");
 }
 </script>
