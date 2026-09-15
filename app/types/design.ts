@@ -105,7 +105,6 @@ export interface GenerateDesignRequest {
   productType?: string
   productName?: string
   fabric?: string
-
   uploadedImageUrl?: string | null
 }
 

@@ -31,26 +31,22 @@ async function regenerate() {
   designStore.setGenerateError(null);
 
   try {
-    const result = await generateDesign({
-      productType: designStore.current.productType,
+    const request = {
+      productType: designStore.current.productType ?? "tee",
       productName: designStore.current.productName ?? "Футболка",
       fabric: designStore.current.fabric ?? "cotton",
-
-      prompt: designStore.current.prompt,
-
-      style: designStore.style,
-
-      // IMPORTANT:
-      // Backend expects `color`, not `shirtColor`.
       color: designStore.shirtColor,
-
+      style: designStore.style,
+      prompt: designStore.current.prompt,
       uploadedImageUrl: designStore.current.uploadedImageUrl ?? null,
-    });
+    };
+
+    console.log("=== FRONTEND DESIGN REQUEST ===");
+    console.log(JSON.stringify(request, null, 2));
+
+    const result = await generateDesign(request);
 
     if (result) {
-      // Backend currently returns one composite image:
-      // LEFT = front
-      // RIGHT = back
       designStore.setGeneratedImages(result.frontImage, null);
     } else {
       designStore.setGenerateError(
