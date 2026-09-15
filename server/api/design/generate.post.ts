@@ -694,23 +694,22 @@ export default defineEventHandler(
       }
 
       /* --------------------------------------------------------
-         GARMENT INSTRUCTION
-      -------------------------------------------------------- */
+    GARMENT INSTRUCTION
+ -------------------------------------------------------- */
 
-      let garmentInstruction =
-        "";
+      let garmentInstruction = "";
 
       if (isTshirt) {
         garmentInstruction = `
-Both garments are classic short-sleeve t-shirts.
-Standard short sleeves.
-Standard crew-neck t-shirt silhouette.
+Classic short-sleeve t-shirt silhouette.
+Standard crew neckline.
+Short sleeves with symmetrical sleeve proportions.
 `;
       } else {
         garmentInstruction = `
-Both garments clearly match the exact requested
-${englishProductName} silhouette.
-Do not change the product type.
+Exact ${englishProductName} silhouette.
+Correct sleeves, neckline, proportions and construction
+for this garment type.
 `;
       }
 
@@ -718,29 +717,57 @@ Do not change the product type.
          PRINT STYLE
       -------------------------------------------------------- */
 
-      let printStyleInstruction =
-        "";
+      let printStyleInstruction = "";
 
       if (isCotton) {
         printStyleInstruction = `
-For the LEFT front-view garment:
-place the artwork as a clean, clearly visible
-print on the upper-left chest area.
+LEFT FRONT GARMENT:
+A clearly visible graphic print is placed on the upper-left chest.
 
-For the RIGHT back-view garment:
-place the EXACT SAME artwork in the corresponding
-upper-back print position.
+RIGHT BACK GARMENT:
+The identical graphic print is placed on the corresponding
+upper-back position.
 
-Keep all remaining garment fabric plain.
+Both prints have the same artwork, colors, scale and visual identity.
 `;
       } else {
         printStyleInstruction = `
-Apply the EXACT SAME artwork consistently
-across both garments as an all-over print.
-
-The same artwork identity, colors and composition
-must remain consistent on both garments.
+The identical artwork covers the visible garment fabric
+as a consistent all-over print on both garments.
+The artwork maintains the same visual identity and colors
+across both garments.
 `;
+      }
+
+      /* --------------------------------------------------------
+         ARTWORK NORMALIZATION
+      -------------------------------------------------------- */
+
+      // When artwork background matches the garment color,
+      // treat it as the garment's negative space rather than
+      // as a separate rectangular printed background.
+
+      let normalizedArtworkDescription =
+        artwork.artworkDescription;
+
+      let normalizedArtworkBackground =
+        artwork.background;
+
+      if (
+        isBlack &&
+        (
+          artwork.background.toLowerCase().includes("black") ||
+          artwork.artworkDescription.toLowerCase().includes("black background")
+        )
+      ) {
+        normalizedArtworkDescription =
+          artwork.artworkDescription
+            .replace(/solid black background/gi, "black negative space")
+            .replace(/stark black background/gi, "black negative space")
+            .replace(/black background/gi, "black negative space");
+
+        normalizedArtworkBackground =
+          "black negative space integrated with the black garment";
       }
 
       /* --------------------------------------------------------
@@ -748,64 +775,53 @@ must remain consistent on both garments.
       -------------------------------------------------------- */
 
       const artworkDetails = [
-        `Main subject: ${artwork.mainSubject
+        `Main subject: ${artwork.mainSubject}`,
+
+        `Visible colors: ${artwork.colors.length
+          ? artwork.colors.join(", ")
+          : "preserve the artwork colors"
         }`,
 
-        `Colors: ${artwork.colors.length
-          ? artwork.colors.join(
-            ", ",
-          )
-          : "preserve the artwork's original colors"
-        }`,
-
-        `Style: ${artwork.style ||
-        style
+        `Visual style: ${artwork.style || style
         }`,
 
         `Composition: ${artwork.composition ||
-        "preserve the requested composition"
+        "centered composition"
         }`,
 
-        `Important details: ${artwork.details.length
-          ? artwork.details.join(
-            ", ",
-          )
-          : "preserve all recognizable details"
+        `Recognizable details: ${artwork.details.length
+          ? artwork.details.join(", ")
+          : "clear recognizable artwork details"
         }`,
 
-        `Artwork background: ${artwork.background ||
-        "preserve the requested background"
+        `Artwork background treatment: ${normalizedArtworkBackground
         }`,
       ].join(". ");
 
       /* --------------------------------------------------------
-         BLACK BACKGROUND LOGIC
+         BLACK BACKGROUND / NEGATIVE SPACE
       -------------------------------------------------------- */
 
-      let blackBackgroundInstruction =
-        "";
+      let blackBackgroundInstruction = "";
 
       if (
         isBlack &&
-        artwork.background
-          .toLowerCase()
-          .includes("black")
+        (
+          artwork.background.toLowerCase().includes("black") ||
+          artwork.artworkDescription.toLowerCase().includes("black background")
+        )
       ) {
         blackBackgroundInstruction = `
-The garment itself is black and the artwork also describes
-black background space.
+The black fabric of the garment naturally forms the black
+negative space around the visible artwork.
 
-Use the black garment surface as the visual black negative space
-of the artwork.
-
-Do NOT create a visible black rectangle, black square,
-boxed background, panel or framed area behind the moon.
-The artwork should blend naturally into the black garment.
+The visible printed element is the white moon graphic itself.
+The black area around the moon remains the natural black garment.
 `;
       } else {
         blackBackgroundInstruction = `
-Preserve the artwork background according to the artwork description,
-but keep the print naturally integrated into the garment.
+The artwork is printed directly onto the garment surface
+while preserving its described colors and visual identity.
 `;
       }
 
@@ -820,13 +836,16 @@ body, torso, head, face, hands, arms, legs, skin,
 hanger, hook, clothing rack, clips, stand,
 
 shoes, sneakers, socks, pants, jeans, shorts,
-skirt, bag, sunglasses, glasses, watch,
-jewelry, hat, phone, furniture, props,
-accessories,
+skirt, bag, sunglasses, glasses, watch, jewelry,
+hat, phone, furniture, props, accessories,
 
 extra object, extra garment, third garment,
 more than two garments, duplicate garment,
 duplicate objects,
+
+different colored garments, mismatched garment colors,
+different garment shapes, different garment sizes,
+different garment types,
 
 overlapping garments, touching garments,
 stacked garments, one garment on another,
@@ -834,9 +853,10 @@ vertical arrangement, folded clothes,
 rolled clothes, tangled fabric,
 
 cropped garment, partial garment,
-angled view, perspective view, side view,
-three-quarter view, standing garment,
-hanging garment, floating garment,
+angled view, perspective view,
+side view, three-quarter view,
+standing garment, hanging garment,
+floating garment,
 
 body-shaped clothing, 3D clothing shape,
 deformed garment, malformed garment,
@@ -844,13 +864,12 @@ distorted proportions, malformed sleeves,
 malformed collar, malformed neckline,
 extra sleeves,
 
-different colors, different shapes,
-different sizes, different fabric,
 different artwork, mismatched artwork,
-
+altered artwork, redesigned artwork,
+missing artwork, missing print,
 blank garment, plain garment,
-missing print, missing graphic,
-invisible design, altered graphic,
+invisible print, faded print,
+tiny invisible graphic,
 warped graphic, distorted graphic,
 duplicated graphic, random graphic,
 blurry print, illegible design,
@@ -860,20 +879,24 @@ rectangular background, background box,
 printed box, artwork panel,
 framed graphic, visible rectangular print background,
 
+gray background, light gray background,
+beige background, cream background,
+tan background, brown background,
+wood, wooden surface,
+tabletop, concrete, stone,
+paper texture, textured surface,
+gradient background,
+room, scenery, studio floor,
+
 low resolution, pixelated, noise, artifacts,
 CGI, 3D render, illustration,
 cartoon, painting,
 
-gray background, colored background,
-textured background, non-white background,
-gradient background, room, scenery,
-studio equipment,
-
 collage, montage, template, mockup,
 grid, split screen, multiple panels,
 border, dividing line,
-
-text overlay, captions, watermark, UI
+text overlay, captions,
+watermark, UI
 `
         .replace(/\s+/g, " ")
         .trim();
@@ -887,89 +910,69 @@ Photorealistic commercial e-commerce flat-lay product photograph.
 
 EXACTLY TWO identical ${englishProductName} garments.
 
-GARMENT COLOR:
+PRODUCT:
 Both garments are solid ${color}.
-Both garments have exactly the same garment color.
-
-PRODUCT CONSISTENCY:
-Both garments are two physical copies of the exact same product.
-
-They have identical:
-- color
-- fabric
-- cut
-- size
-- proportions
-- construction
-- sleeves
-- collar
-
-PLACEMENT:
-The two garments are placed side by side horizontally.
-They are completely separate.
-There is clear empty white space between them.
-They do not overlap or touch.
-
-VIEW:
-LEFT garment = complete front view.
-RIGHT garment = complete back view.
+They are two physical copies of the same exact garment.
+Identical color, identical fabric, identical cut,
+identical proportions, identical size and identical construction.
 
 ${garmentInstruction}
 
+LAYOUT:
+Two garments placed horizontally side by side.
+The garments are fully separated.
+Clear white space between the garments.
+Equal visual scale.
+Equal distance between garments.
+
+VIEW:
+LEFT garment: complete front view.
+RIGHT garment: complete back view.
+
+The two views show opposite sides of the same exact garment design.
+
 ARTWORK:
-${artwork.artworkDescription}
+${normalizedArtworkDescription}
 
 ARTWORK DETAILS:
 ${artworkDetails}
 
-PRINT CONSISTENCY:
-The EXACT SAME artwork must appear on BOTH garments.
+The visible artwork is crisp, recognizable and clearly printed.
+The artwork uses the same colors, subject, proportions,
+composition and visual identity on both garments.
 
-Preserve:
-- the same subject
-- the same colors
-- the same composition
-- the same proportions
-- the same recognizable visual identity
-
-Do not redesign the artwork.
-Do not reinterpret it.
-Do not simplify it.
-Do not create a different version for the second garment.
-
-PRINT PLACEMENT:
 ${printStyleInstruction}
 
 ${blackBackgroundInstruction}
 
-The artwork is a real physical print directly integrated
-into the textile surface.
-
-The print follows the natural surface of the fabric.
-The print remains sharp and recognizable.
-
-COMPOSITION:
-The complete garments are visible edge to edge.
-Straight overhead 90-degree camera.
-Horizontal side-by-side composition.
-LEFT = front.
-RIGHT = back.
-Equal visual scale.
-Equal spacing.
-Centered composition.
+PRINT APPEARANCE:
+The artwork is a real physical garment print.
+It is directly integrated into the textile surface.
+The printed graphic follows the natural fabric surface.
+The visible artwork remains sharp and clearly recognizable.
 
 BACKGROUND:
-Pure white seamless background.
+The entire area surrounding the garments is a completely
+uniform pure white #FFFFFF seamless background.
+The background fills the entire image.
+
+COMPOSITION:
+Straight overhead 90-degree camera.
+Flat-lay product photography.
+Complete garments visible from edge to edge.
+Centered horizontal composition.
+LEFT front, RIGHT back.
 
 PHOTOGRAPHY:
 Soft diffused studio lighting.
-Very soft contact shadows.
+Very soft contact shadows directly beneath the garments.
 Realistic textile texture.
-Subtle natural wrinkles.
-Accurate proportions.
+Subtle natural fabric wrinkles.
+Accurate garment proportions.
 Natural realistic colors.
-Sharp print details.
-Photorealistic commercial e-commerce product photography.
+Crisp garment edges.
+High photographic realism.
+Professional commercial e-commerce product photography.
 `
         .replace(/\n{3,}/g, "\n\n")
         .trim();
