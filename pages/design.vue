@@ -23,17 +23,6 @@
 
     <!-- Design mode tabs -->
     <h2 class="mb-3 mt-8 text-lg font-bold">Дизайн</h2>
-    <div class="flex gap-2 rounded-xl bg-[#FAFBFD] p-1">
-      <button
-        v-for="tab in designTabs"
-        :key="tab.id"
-        class="flex-1 rounded-lg py-2.5 text-sm font-bold transition"
-        :class="activeTab === tab.id ? 'bg-sage text-white' : 'text-ink/50'"
-        @click="activeTab = tab.id"
-      >
-        {{ tab.label }}
-      </button>
-    </div>
 
     <!-- Upload design & Gemini Dimension Extraction -->
     <div v-if="activeTab === 'upload'">
@@ -345,7 +334,6 @@ const generatedFront = ref(order.draft.design?.aiFrontImage ?? null);
 const generatedBack = ref(order.draft.design?.aiBackImage ?? null);
 
 const designTabs = [
-  { id: "existing" as const, label: "Готовые" },
   { id: "upload" as const, label: "Загрузить" },
   { id: "ai" as const, label: "AI дизайн" },
 ];
