@@ -9,7 +9,7 @@ export const PRODUCTS: Product[] = [
 ]
 
 export const FABRICS: Fabric[] = [
-  { id: 'cotton', name: 'Хлопок', additionalPrice: 0, description: 'Дышащий и мягкий материал' },
+  { id: 'cotton', name: 'Хлопок', additionalPrice: 25, description: 'Дышащий и мягкий материал' },
   { id: 'sport', name: 'Спортивная ткань', additionalPrice: 30, description: 'Лёгкая, эластичная, быстро сохнет' },
 ]
 
