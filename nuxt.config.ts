@@ -3,13 +3,13 @@ export default defineNuxtConfig({
   devtools: { enabled: false },
   modules: ['@pinia/nuxt'],
   css: ['~/assets/css/main.css'],
-  
+
   runtimeConfig: {
     telegramBotToken: process.env.TELEGRAM_BOT_TOKEN || process.env.NUXT_TELEGRAM_BOT_TOKEN || '',
     telegramAdminChatId: '',
     supabaseServiceRoleKey: '',
     replicateApiToken: '',
-    geminiApiKey: '',
+    geminiApiKey: process.env.GEMINI_API_KEY || "",
     siteUrl: process.env.NUXT_PUBLIC_SITE_URL || 'https://fabrika.chat',
     public: {
       appName: 'Fabrika',

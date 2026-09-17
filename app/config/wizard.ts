@@ -18,7 +18,7 @@ export const PRODUCTS: ProductType[] = [
   {
     id: 'kids-tshirt',
     name: 'Детская футболка',
-    price: 18,
+    price: 25,
     image: 'https://images.pexels.com/photos/5693888/pexels-photo-5693888.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
     sizes: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
   },
@@ -32,7 +32,7 @@ export const PRODUCTS: ProductType[] = [
   {
     id: 'tracksuit',
     name: 'Спортивный костюм',
-    price: 65,
+    price: 50,
     image: 'https://images.pexels.com/photos/13897451/pexels-photo-13897451.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
     sizes: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
   },
@@ -43,7 +43,7 @@ export const FABRICS: Fabric[] = [
     id: 'cotton',
     name: 'Хлопок',
     description: 'Мягкий и приятный к телу, хорошо пропускает воздух',
-    price: 0,
+    price: 25,
     swatchImage: 'https://images.pexels.com/photos/31034512/pexels-photo-31034512.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
   },
   {
@@ -59,13 +59,6 @@ export const FABRICS: Fabric[] = [
     description: 'Натуральный и дышащий, прохладный в жару',
     price: 8,
     swatchImage: 'https://images.pexels.com/photos/37661410/pexels-photo-37661410.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
-  },
-  {
-    id: 'blend',
-    name: 'Микс (хлопок + полиэстер)',
-    description: 'Устойчив к деформации, сохраняет форму',
-    price: 3,
-    swatchImage: 'https://images.pexels.com/photos/11255285/pexels-photo-11255285.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
   },
 ]
 

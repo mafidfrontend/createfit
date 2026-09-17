@@ -16,7 +16,7 @@ export const products: Product[] = [
   {
     id: 'tshirt-kids',
     name: 'Детская футболка',
-    price: 20,
+    price: 25,
     image: '/images/products/tshirt-kids.jpg'
   },
   {
@@ -28,7 +28,7 @@ export const products: Product[] = [
   {
     id: 'tracksuit',
     name: 'Спортивный костюм',
-    price: 75,
+    price: 50,
     image: '/images/products/tracksuit.jpg'
   }
 ]

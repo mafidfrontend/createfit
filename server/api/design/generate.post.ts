@@ -10,6 +10,8 @@ type ArtworkAnalysis = {
   composition: string;
   details: string[];
   background: string;
+  frontPlacement: string;
+  backPlacement: string;
 };
 
 type GenerateRequestBody = {
@@ -36,7 +38,10 @@ function normalizeText(
 
   const trimmed = value.trim();
 
-  if (!trimmed || trimmed.toLowerCase() === "null") {
+  if (
+    !trimmed ||
+    trimmed.toLowerCase() === "null"
+  ) {
     return fallback;
   }
 
@@ -46,19 +51,20 @@ function normalizeText(
 function normalizeColor(value: unknown): string {
   const color = normalizeText(value, "");
 
-  if (!color) {
-    return "unspecified";
-  }
-
-  return color;
+  return color || "unspecified";
 }
 
 function detectProductType(
   productName: string,
   productType?: string,
 ): string {
-  const name = productName.toLowerCase().trim();
-  const type = (productType || "").toLowerCase().trim();
+  const name = productName
+    .toLowerCase()
+    .trim();
+
+  const type = (productType || "")
+    .toLowerCase()
+    .trim();
 
   if (
     type === "tee" ||
@@ -100,18 +106,55 @@ function detectProductType(
   return "garment";
 }
 
-function isCottonFabric(fabric: string): boolean {
-  const value = fabric.toLowerCase();
+function getGarmentInstruction(
+  productType: string,
+): string {
+  switch (productType) {
+    case "t-shirt":
+      return `
+Classic short-sleeve t-shirt silhouette.
+Standard crew neckline.
+Short sleeves with natural symmetrical proportions.
+Clean retail-ready construction.
+`;
 
-  return (
-    value.includes("хлопок") ||
-    value.includes("хб") ||
-    value.includes("cotton") ||
-    value.includes("пахта")
-  );
+    case "hoodie":
+      return `
+Classic hoodie silhouette.
+Proper hood construction.
+Long sleeves.
+Natural hoodie proportions.
+Clean retail-ready construction.
+`;
+
+    case "sweatshirt":
+      return `
+Classic sweatshirt silhouette.
+Crew neckline.
+Long sleeves.
+Natural sweatshirt proportions.
+Clean retail-ready construction.
+`;
+
+    case "long sleeve shirt":
+      return `
+Classic long-sleeve shirt silhouette.
+Long sleeves with natural proportions.
+Correct neckline and garment construction.
+Clean retail-ready construction.
+`;
+
+    default:
+      return `
+Use an accurate silhouette and construction appropriate
+for the requested garment type.
+`;
+  }
 }
 
-function isBlackColor(color: string): boolean {
+function isBlackColor(
+  color: string,
+): boolean {
   const value = color.toLowerCase();
 
   return (
@@ -122,77 +165,21 @@ function isBlackColor(color: string): boolean {
   );
 }
 
-/* ============================================================
-   STABILITY IMAGE GENERATION
-============================================================ */
+function mimeTypeToExtension(
+  mimeType: string,
+): string {
+  const value =
+    mimeType.toLowerCase();
 
-async function generateAndUpload(
-  prompt: string,
-  negativePrompt: string,
-  stabilityApiKey: string,
-  supabase: any,
-): Promise<string> {
-  const formData = new FormData();
-
-  formData.append("prompt", prompt);
-  formData.append("negative_prompt", negativePrompt);
-  formData.append("output_format", "png");
-  formData.append("aspect_ratio", "16:9");
-
-  const response = await fetch(
-    "https://api.stability.ai/v2beta/stable-image/generate/core",
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${stabilityApiKey}`,
-        Accept: "image/*",
-      },
-      body: formData,
-    },
-  );
-
-  if (!response.ok) {
-    const errText = await response.text();
-
-    throw new Error(
-      `Stability AI xatosi (${response.status}): ${errText}`,
-    );
+  if (value.includes("jpeg")) {
+    return "jpg";
   }
 
-  const imageArrayBuffer = await response.arrayBuffer();
-  const imageBuffer = Buffer.from(imageArrayBuffer);
-
-  const uniqueFileName =
-    `ai-generated-${Date.now()}-${Math.random()
-      .toString(36)
-      .slice(2, 8)}.png`;
-
-  const { error: uploadError } = await supabase.storage
-    .from("designs")
-    .upload(uniqueFileName, imageBuffer, {
-      contentType: "image/png",
-      upsert: false,
-    });
-
-  if (uploadError) {
-    throw new Error(
-      `Supabase Storage xatosi: ${uploadError.message}`,
-    );
+  if (value.includes("webp")) {
+    return "webp";
   }
 
-  const { data: publicUrlData } = supabase.storage
-    .from("designs")
-    .getPublicUrl(uniqueFileName);
-
-  const publicUrl = publicUrlData?.publicUrl;
-
-  if (!publicUrl) {
-    throw new Error(
-      "Supabase public URL yaratilmadi",
-    );
-  }
-
-  return publicUrl;
+  return "png";
 }
 
 /* ============================================================
@@ -206,7 +193,7 @@ async function analyzeArtworkWithGemini(
 ): Promise<ArtworkAnalysis> {
   if (!geminiApiKey) {
     throw new Error(
-      "Gemini API kaliti topilmadi",
+      "Gemini API kaliti topilmadi.",
     );
   }
 
@@ -217,51 +204,64 @@ async function analyzeArtworkWithGemini(
   let lastError: Error | null = null;
 
   const instruction = `
-Analyze the user's design idea and convert it into a structured
+You are the visual artwork specification engine for Fabrika,
+a custom clothing e-commerce platform.
+
+Convert the user's design request into a precise structured
 description of the VISUAL ARTWORK ONLY.
 
 USER DESIGN IDEA:
 "${userPrompt}"
 
+IMPORTANT:
+The user may write in Russian, Uzbek, or English.
+
+Your job is NOT to redesign the idea.
+Your job is to understand it and preserve its original intent.
+
 RULES:
 
 1. Return the complete JSON object required by the schema.
-2. All descriptive values MUST be in English.
-3. Preserve the user's original visual intent exactly.
-4. Do not invent major objects, symbols, subjects, or colors.
-5. Describe only the artwork.
-6. Do not mention:
-   - clothing
-   - garments
-   - t-shirts
-   - hoodies
-   - sweatshirts
-   - people
-   - models
-   - mannequins
-   - bodies
-   - fabric
-   - product photography
-   - camera
-   - lighting
-   - studio
-   - catalog
-   - mockup
-7. If the user explicitly mentions an artwork background, preserve it.
-8. If the user mentions a color, preserve it.
-9. If the user mentions a specific composition, preserve it.
-10. artworkDescription must be one concise but visually useful English sentence.
-11. Do not translate the user's idea into a different concept.
+2. All descriptive values must be in English.
+3. Preserve the user's original visual intent.
+4. Do not invent major objects, symbols, subjects, colors,
+   typography, or decorative elements.
+5. Describe the artwork itself, not the garment.
+6. Do not mention clothing, garments, t-shirts, hoodies,
+   sweatshirts, people, models, mannequins, bodies,
+   fabric, product photography, camera, lighting, studio,
+   catalog, or mockup inside artworkDescription.
+7. If the user explicitly requests a background for the artwork,
+   preserve it.
+8. If the user explicitly requests colors, preserve them.
+9. If the user explicitly requests a composition, preserve it.
+10. If the user explicitly requests a placement, preserve it.
+11. mainSubject must identify the primary visual subject.
+12. colors must contain the important visible artwork colors.
+13. style must describe the visual style.
+14. composition must describe arrangement and visual structure.
+15. details must contain important recognizable details.
+16. artworkDescription must be one concise but useful English sentence.
+17. frontPlacement must describe where the artwork should appear
+    on the FRONT garment.
+18. backPlacement must describe where the artwork should appear
+    on the BACK garment.
+19. If the user does not specify front/back placement,
+    choose a simple commercially reasonable placement,
+    but do not change the artwork itself.
+20. Never turn a simple requested artwork into a different design.
 
 Example input:
 "с белой луной на чёрном фоне"
 
-Example interpretation:
-- main subject: white moon
+Correct interpretation:
+- mainSubject: white moon
 - colors: white, black
 - style: minimalist graphic
 - composition: centered
 - background: solid black
+- frontPlacement: centered chest
+- backPlacement: centered upper back
 `;
 
   for (
@@ -271,7 +271,7 @@ Example interpretation:
   ) {
     try {
       console.log(
-        `Gemini structured analysis: ${attempt}/${maxRetries}`,
+        `Gemini artwork analysis: ${attempt}/${maxRetries}`,
       );
 
       const response =
@@ -279,7 +279,8 @@ Example interpretation:
           model: "gemini-3.6-flash",
           contents: instruction,
           config: {
-            responseMimeType: "application/json",
+            responseMimeType:
+              "application/json",
 
             responseSchema: {
               type: Type.OBJECT,
@@ -322,6 +323,14 @@ Example interpretation:
                 background: {
                   type: Type.STRING,
                 },
+
+                frontPlacement: {
+                  type: Type.STRING,
+                },
+
+                backPlacement: {
+                  type: Type.STRING,
+                },
               },
 
               required: [
@@ -333,28 +342,32 @@ Example interpretation:
                 "composition",
                 "details",
                 "background",
+                "frontPlacement",
+                "backPlacement",
               ],
             },
           },
         });
 
-      const rawText = response?.text?.trim();
+      const rawText =
+        response?.text?.trim();
 
       if (!rawText) {
         throw new Error(
-          "Gemini dan bo'sh JSON javob keldi",
+          "Gemini dan bo'sh JSON javob keldi.",
         );
       }
 
       console.log(
-        "Gemini raw JSON:",
+        "Gemini raw artwork JSON:",
         rawText,
       );
 
       let parsed: Partial<ArtworkAnalysis>;
 
       try {
-        parsed = JSON.parse(rawText);
+        parsed =
+          JSON.parse(rawText);
       } catch {
         throw new Error(
           `Gemini JSON parse xatosi: ${rawText}`,
@@ -363,61 +376,101 @@ Example interpretation:
 
       const result: ArtworkAnalysis = {
         language:
-          typeof parsed.language === "string"
+          typeof parsed.language ===
+          "string"
             ? parsed.language.trim()
             : "unknown",
 
         artworkDescription:
-          typeof parsed.artworkDescription === "string"
+          typeof parsed.artworkDescription ===
+          "string"
             ? parsed.artworkDescription.trim()
             : "",
 
         mainSubject:
-          typeof parsed.mainSubject === "string"
+          typeof parsed.mainSubject ===
+          "string"
             ? parsed.mainSubject.trim()
             : "",
 
         colors:
           Array.isArray(parsed.colors)
             ? parsed.colors
-              .filter(
-                (item): item is string =>
-                  typeof item === "string",
-              )
-              .map((item) => item.trim())
-              .filter(Boolean)
+                .filter(
+                  (
+                    item,
+                  ): item is string =>
+                    typeof item ===
+                    "string",
+                )
+                .map((item) =>
+                  item.trim(),
+                )
+                .filter(Boolean)
             : [],
 
         style:
-          typeof parsed.style === "string"
+          typeof parsed.style ===
+          "string"
             ? parsed.style.trim()
             : "",
 
         composition:
-          typeof parsed.composition === "string"
+          typeof parsed.composition ===
+          "string"
             ? parsed.composition.trim()
             : "",
 
         details:
-          Array.isArray(parsed.details)
+          Array.isArray(
+            parsed.details,
+          )
             ? parsed.details
-              .filter(
-                (item): item is string =>
-                  typeof item === "string",
-              )
-              .map((item) => item.trim())
-              .filter(Boolean)
+                .filter(
+                  (
+                    item,
+                  ): item is string =>
+                    typeof item ===
+                    "string",
+                )
+                .map((item) =>
+                  item.trim(),
+                )
+                .filter(Boolean)
             : [],
 
         background:
-          typeof parsed.background === "string"
+          typeof parsed.background ===
+          "string"
             ? parsed.background.trim()
             : "",
+
+        frontPlacement:
+          typeof parsed.frontPlacement ===
+          "string"
+            ? parsed.frontPlacement.trim()
+            : "centered chest",
+
+        backPlacement:
+          typeof parsed.backPlacement ===
+          "string"
+            ? parsed.backPlacement.trim()
+            : "centered upper back",
       };
 
-      if (!result.artworkDescription) {
+      if (
+        !result.artworkDescription
+      ) {
         throw new Error(
-          "Gemini artworkDescription qaytarmadi",
+          "Gemini artworkDescription qaytarmadi.",
+        );
+      }
+
+      if (
+        !result.mainSubject
+      ) {
+        throw new Error(
+          "Gemini mainSubject qaytarmadi.",
         );
       }
 
@@ -436,9 +489,9 @@ Example interpretation:
         error instanceof Error
           ? error
           : new Error(
-            error?.message ||
-            "Noma'lum Gemini xatosi",
-          );
+              error?.message ||
+                "Noma'lum Gemini xatosi",
+            );
 
       const errorMessage =
         lastError.message;
@@ -447,13 +500,27 @@ Example interpretation:
         errorMessage.toLowerCase();
 
       const isAuthError =
-        normalized.includes("api key") ||
-        normalized.includes("api_key") ||
-        normalized.includes("authentication") ||
-        normalized.includes("unauthorized") ||
-        normalized.includes("forbidden") ||
-        errorMessage.includes("401") ||
-        errorMessage.includes("403");
+        normalized.includes(
+          "api key",
+        ) ||
+        normalized.includes(
+          "api_key",
+        ) ||
+        normalized.includes(
+          "authentication",
+        ) ||
+        normalized.includes(
+          "unauthorized",
+        ) ||
+        normalized.includes(
+          "forbidden",
+        ) ||
+        errorMessage.includes(
+          "401",
+        ) ||
+        errorMessage.includes(
+          "403",
+        );
 
       if (isAuthError) {
         throw new Error(
@@ -465,18 +532,21 @@ Example interpretation:
         `Gemini xatosi (${attempt}-urinish): ${errorMessage}`,
       );
 
-      if (attempt === maxRetries) {
+      if (
+        attempt === maxRetries
+      ) {
         break;
       }
 
-      const waitTime = Math.min(
-        1000 *
-        Math.pow(
-          2,
-          attempt - 1,
-        ),
-        8000,
-      );
+      const waitTime =
+        Math.min(
+          1000 *
+            Math.pow(
+              2,
+              attempt - 1,
+            ),
+          8000,
+        );
 
       await new Promise(
         (resolve) =>
@@ -489,10 +559,186 @@ Example interpretation:
   }
 
   throw new Error(
-    `Gemini structured output ishlamadi: ${lastError?.message ||
-    "Noma'lum xato"
+    `Gemini structured output ishlamadi: ${
+      lastError?.message ||
+      "Noma'lum xato"
     }`,
   );
+}
+
+/* ============================================================
+   GEMINI IMAGE GENERATION
+============================================================ */
+
+async function generateGeminiImage(
+  geminiApiKey: string,
+  prompt: string,
+): Promise<{
+  mimeType: string;
+  base64: string;
+}> {
+  const ai = new GoogleGenAI({
+    apiKey: geminiApiKey,
+  });
+
+  console.log(
+    "Starting Nano Banana 2 generation...",
+  );
+
+  const response =
+    await ai.models.generateContent({
+      model:
+        "gemini-3.1-flash-image",
+
+      contents: prompt,
+
+      config: {
+        responseModalities: [
+          "IMAGE",
+        ],
+
+        responseFormat: {
+          image: {
+            aspectRatio:
+              "16:9",
+
+            imageSize:
+              "2K",
+          },
+        },
+      },
+    });
+
+  const parts =
+    response.candidates?.[0]
+      ?.content?.parts ?? [];
+
+  const imagePart =
+    parts.find(
+      (part) =>
+        "inlineData" in part &&
+        !!part.inlineData?.data,
+    );
+
+  if (
+    !imagePart ||
+    !("inlineData" in imagePart) ||
+    !imagePart.inlineData?.data
+  ) {
+    console.error(
+      "Nano Banana 2 response:",
+      JSON.stringify(
+        response,
+        null,
+        2,
+      ),
+    );
+
+    throw new Error(
+      "Nano Banana 2 rasm qaytarmadi.",
+    );
+  }
+
+  return {
+    mimeType:
+      imagePart.inlineData
+        .mimeType ||
+      "image/png",
+
+    base64:
+      imagePart.inlineData.data,
+  };
+}
+
+/* ============================================================
+   SUPABASE IMAGE UPLOAD
+============================================================ */
+
+async function uploadGeneratedImage(
+  supabase: any,
+  base64: string,
+  mimeType: string,
+): Promise<string> {
+  const imageBuffer =
+    Buffer.from(
+      base64,
+      "base64",
+    );
+
+  if (
+    imageBuffer.length === 0
+  ) {
+    throw new Error(
+      "Generated image bo'sh.",
+    );
+  }
+
+  const extension =
+    mimeTypeToExtension(
+      mimeType,
+    );
+
+  const uniqueFileName =
+    `gemini-generated/${Date.now()}-${crypto.randomUUID()}.${extension}`;
+
+  console.log(
+    "Uploading generated image:",
+    {
+      fileName:
+        uniqueFileName,
+
+      sizeMB:
+        (
+          imageBuffer.length /
+          1024 /
+          1024
+        ).toFixed(2),
+
+      mimeType,
+    },
+  );
+
+  const {
+    error: uploadError,
+  } =
+    await supabase.storage
+      .from("designs")
+      .upload(
+        uniqueFileName,
+        imageBuffer,
+        {
+          contentType:
+            mimeType,
+
+          upsert: false,
+        },
+      );
+
+  if (uploadError) {
+    throw new Error(
+      `Supabase Storage xatosi: ${uploadError.message}`,
+    );
+  }
+
+  const {
+    data: publicUrlData,
+  } =
+    supabase.storage
+      .from("designs")
+      .getPublicUrl(
+        uniqueFileName,
+      );
+
+  const publicUrl =
+    publicUrlData?.publicUrl;
+
+  if (!publicUrl) {
+    throw new Error(
+      "Supabase public URL yaratilmadi.",
+    );
+  }
+
+  return publicUrl;
 }
 
 /* ============================================================
@@ -521,7 +767,7 @@ export default defineEventHandler(
         normalizeText(
           body?.productName,
           productType ||
-          "garment",
+            "garment",
         );
 
       const fabric =
@@ -554,7 +800,7 @@ export default defineEventHandler(
         );
 
       console.log(
-        "=== FABRIKA AI GENERATION ===",
+        "=== FABRIKA GEMINI GENERATION ===",
       );
 
       console.log(
@@ -595,15 +841,30 @@ export default defineEventHandler(
       );
 
       /* --------------------------------------------------------
-         SUPABASE
+         ENVIRONMENT
       -------------------------------------------------------- */
+
+      const geminiApiKey =
+        process.env.GEMINI_API_KEY ||
+        process.env.NUXT_GEMINI_API_KEY ||
+        "";
+
+      if (!geminiApiKey) {
+        throw createError({
+          statusCode: 500,
+          message:
+            "GEMINI_API_KEY topilmadi.",
+        });
+      }
 
       const supabaseUrl =
         process.env.SUPABASE_URL ||
-        process.env.VITE_SUPABASE_URL;
+        process.env.VITE_SUPABASE_URL ||
+        "";
 
       const serviceKey =
-        process.env.SUPABASE_SERVICE_ROLE_KEY;
+        process.env.SUPABASE_SERVICE_ROLE_KEY ||
+        "";
 
       if (
         !supabaseUrl ||
@@ -638,13 +899,9 @@ export default defineEventHandler(
           productType,
         );
 
-      const isTshirt =
-        englishProductName ===
-        "t-shirt";
-
-      const isCotton =
-        isCottonFabric(
-          fabric,
+      const garmentInstruction =
+        getGarmentInstruction(
+          englishProductName,
         );
 
       const isBlack =
@@ -653,23 +910,10 @@ export default defineEventHandler(
         );
 
       /* --------------------------------------------------------
-         GEMINI
+         STEP 1: GEMINI 3.6 ANALYSIS
       -------------------------------------------------------- */
 
-      const geminiApiKey =
-        process.env.GEMINI_API_KEY ||
-        process.env.VITE_GEMINI_API_KEY ||
-        "";
-
       let artwork: ArtworkAnalysis;
-
-      if (!geminiApiKey) {
-        throw createError({
-          statusCode: 500,
-          message:
-            "GEMINI_API_KEY topilmadi.",
-        });
-      }
 
       try {
         artwork =
@@ -678,74 +922,27 @@ export default defineEventHandler(
             userPrompt,
             3,
           );
-      } catch (geminiError: any) {
+      } catch (
+        geminiError: any
+      ) {
         console.error(
           "GEMINI STRUCTURED OUTPUT ERROR:",
           geminiError,
         );
 
         throw createError({
-          statusCode: 500,
+          statusCode: 502,
           message:
-            `Gemini structured output xatosi: ${geminiError?.message ||
-            "Noma'lum xato"
+            `Gemini artwork analysis xatosi: ${
+              geminiError?.message ||
+              "Noma'lum xato"
             }`,
         });
       }
 
       /* --------------------------------------------------------
-    GARMENT INSTRUCTION
- -------------------------------------------------------- */
-
-      let garmentInstruction = "";
-
-      if (isTshirt) {
-        garmentInstruction = `
-Classic short-sleeve t-shirt silhouette.
-Standard crew neckline.
-Short sleeves with symmetrical sleeve proportions.
-`;
-      } else {
-        garmentInstruction = `
-Exact ${englishProductName} silhouette.
-Correct sleeves, neckline, proportions and construction
-for this garment type.
-`;
-      }
-
-      /* --------------------------------------------------------
-         PRINT STYLE
+         STEP 2: ARTWORK NORMALIZATION
       -------------------------------------------------------- */
-
-      let printStyleInstruction = "";
-
-      if (isCotton) {
-        printStyleInstruction = `
-LEFT FRONT GARMENT:
-A clearly visible graphic print is placed on the upper-left chest.
-
-RIGHT BACK GARMENT:
-The identical graphic print is placed on the corresponding
-upper-back position.
-
-Both prints have the same artwork, colors, scale and visual identity.
-`;
-      } else {
-        printStyleInstruction = `
-The identical artwork covers the visible garment fabric
-as a consistent all-over print on both garments.
-The artwork maintains the same visual identity and colors
-across both garments.
-`;
-      }
-
-      /* --------------------------------------------------------
-         ARTWORK NORMALIZATION
-      -------------------------------------------------------- */
-
-      // When artwork background matches the garment color,
-      // treat it as the garment's negative space rather than
-      // as a separate rectangular printed background.
 
       let normalizedArtworkDescription =
         artwork.artworkDescription;
@@ -753,96 +950,259 @@ across both garments.
       let normalizedArtworkBackground =
         artwork.background;
 
+      const artworkBackground =
+        artwork.background.toLowerCase();
+
+      const artworkDescription =
+        artwork.artworkDescription.toLowerCase();
+
+      const hasBlackBackground =
+        artworkBackground.includes(
+          "black",
+        ) ||
+        artworkDescription.includes(
+          "black background",
+        );
+
       if (
         isBlack &&
-        (
-          artwork.background.toLowerCase().includes("black") ||
-          artwork.artworkDescription.toLowerCase().includes("black background")
-        )
+        hasBlackBackground
       ) {
         normalizedArtworkDescription =
-          artwork.artworkDescription
-            .replace(/solid black background/gi, "black negative space")
-            .replace(/stark black background/gi, "black negative space")
-            .replace(/black background/gi, "black negative space");
+          normalizedArtworkDescription
+            .replace(
+              /solid black background/gi,
+              "black negative space",
+            )
+            .replace(
+              /stark black background/gi,
+              "black negative space",
+            )
+            .replace(
+              /black background/gi,
+              "black negative space",
+            );
 
         normalizedArtworkBackground =
-          "black negative space integrated with the black garment";
+          "black negative space integrated with the natural black garment";
       }
 
       /* --------------------------------------------------------
-         ARTWORK DETAILS
+         STEP 3: PRINT INSTRUCTION
       -------------------------------------------------------- */
 
-      const artworkDetails = [
-        `Main subject: ${artwork.mainSubject}`,
+      const printInstruction =
+        `
+PRINTING REQUIREMENTS:
 
-        `Visible colors: ${artwork.colors.length
-          ? artwork.colors.join(", ")
-          : "preserve the artwork colors"
-        }`,
+The artwork must appear as an actual printed graphic
+on the garment surface.
 
-        `Visual style: ${artwork.style || style
-        }`,
+FRONT:
+- Front artwork placement: ${artwork.frontPlacement}
 
-        `Composition: ${artwork.composition ||
-        "centered composition"
-        }`,
+BACK:
+- Back artwork placement: ${artwork.backPlacement}
 
-        `Recognizable details: ${artwork.details.length
-          ? artwork.details.join(", ")
-          : "clear recognizable artwork details"
-        }`,
+The front and back artworks represent the same design identity.
 
-        `Artwork background treatment: ${normalizedArtworkBackground
-        }`,
-      ].join(". ");
+Do not replace the requested artwork with another graphic.
 
-      /* --------------------------------------------------------
-         BLACK BACKGROUND / NEGATIVE SPACE
-      -------------------------------------------------------- */
+Do not add unrelated decorative elements.
 
-      let blackBackgroundInstruction = "";
+Do not turn the artwork into embroidery, a patch, sticker,
+poster, floating graphic, or separate rectangular object.
 
-      if (
-        isBlack &&
-        (
-          artwork.background.toLowerCase().includes("black") ||
-          artwork.artworkDescription.toLowerCase().includes("black background")
-        )
-      ) {
-        blackBackgroundInstruction = `
-The black fabric of the garment naturally forms the black
-negative space around the visible artwork.
-
-The visible printed element is the white moon graphic itself.
-The black area around the moon remains the natural black garment.
+The artwork must visually follow the natural surface of the garment.
 `;
-      } else {
-        blackBackgroundInstruction = `
-The artwork is printed directly onto the garment surface
-while preserving its described colors and visual identity.
+
+      /* --------------------------------------------------------
+         STEP 4: FINAL IMAGE PROMPT
+      -------------------------------------------------------- */
+
+      const finalPrompt = `
+Create a photorealistic commercial e-commerce flat-lay
+product photograph.
+
+EXACTLY TWO IDENTICAL GARMENTS.
+
+GARMENT:
+- Product type: ${englishProductName}
+- Product name: ${productName}
+- Color: ${color}
+- Fabric: ${fabric}
+
+${garmentInstruction}
+
+The two garments must be the exact same physical garment design.
+
+LAYOUT:
+
+Place exactly two garments horizontally side by side.
+
+LEFT GARMENT:
+Complete FRONT view.
+
+RIGHT GARMENT:
+Complete BACK view.
+
+Both garments must have:
+- identical color
+- identical size
+- identical proportions
+- identical construction
+- identical fabric
+- identical silhouette
+- equal visual scale
+
+Do not show a third garment.
+
+ARTWORK:
+
+${normalizedArtworkDescription}
+
+MAIN SUBJECT:
+${artwork.mainSubject}
+
+ARTWORK COLORS:
+${
+  artwork.colors.length
+    ? artwork.colors.join(", ")
+    : "preserve the user's artwork colors"
+}
+
+ARTWORK STYLE:
+${artwork.style || style}
+
+ARTWORK COMPOSITION:
+${artwork.composition || "clear and intentional composition"}
+
+ARTWORK DETAILS:
+${
+  artwork.details.length
+    ? artwork.details.join("; ")
+    : "preserve all important recognizable visual details"
+}
+
+ARTWORK BACKGROUND:
+${normalizedArtworkBackground}
+
+${printInstruction}
+
+${
+  isBlack &&
+  hasBlackBackground
+    ? `
+IMPORTANT BLACK GARMENT RULE:
+
+The garment itself is black.
+
+If the requested artwork uses black as its surrounding background,
+do NOT create a visible rectangular black print area.
+
+The natural black fabric should act as the black negative space.
+
+Only the intended visible artwork elements should appear as printed
+elements on the garment.
+`
+    : ""
+}
+
+PRODUCT PRESENTATION:
+
+- Unworn garments
+- No people
+- No models
+- No mannequins
+- No body parts
+- No hands
+- No hanger
+- No accessories
+- No additional clothing
+
+BACKGROUND:
+
+Pure white #FFFFFF seamless background.
+
+No room.
+No furniture.
+No table.
+No floor.
+No colored background.
+
+CAMERA:
+
+- Exact 90-degree overhead camera
+- True flat-lay photography
+- No perspective distortion
+- No side angle
+- No close-up crop
+
+COMPOSITION:
+
+- Left garment = front
+- Right garment = back
+- Both garments completely visible
+- Equal visual scale
+- Clear white space between garments
+- No overlap
+- Balanced centered horizontal composition
+
+PHOTOGRAPHY:
+
+Professional commercial e-commerce photography.
+
+Realistic textile texture.
+
+Natural fabric folds.
+
+Realistic seams and garment construction.
+
+Subtle natural contact shadows.
+
+Crisp garment edges.
+
+High photographic realism.
+
+STRICTLY DO NOT GENERATE:
+
+- people
+- models
+- mannequins
+- faces
+- hands
+- body parts
+- hangers
+- accessories
+- bags
+- shoes
+- extra clothing
+- third garment
+- different garment designs
+- different garment colors
+- different garment sizes
+- cropped garments
+- overlapping garments
+- gray background
+- beige background
+- colored background
+- table
+- floor
+- furniture
+- room
+- collage
+- split-screen panels
+- multiple viewpoints
+- additional camera angles
+- unrelated objects
+- unrelated artwork
+- watermarks
+- logos unless explicitly requested
+- text unless explicitly requested
 `;
-      }
-
-      /* --------------------------------------------------------
-         NEGATIVE PROMPT
-      -------------------------------------------------------- */
-
-      const negativePrompt = `one shirt, third shirt, different shirt colors, missing print, blank shirt, beige background, gray background, brown background, wood, mannequin, person`
-
-      /* --------------------------------------------------------
-         FINAL STABILITY PROMPT
-      -------------------------------------------------------- */
-
-      const finalPrompt = `Exactly two identical black t-shirts laid flat side by side horizontally on a pure white background. Left shirt is complete front view. Right shirt is complete back view. Both shirts are identical. A clearly visible white moon graphic is printed on the left chest of the front shirt and the same white moon graphic is printed on the corresponding upper-back position of the right shirt.`
-
-      /* --------------------------------------------------------
-         LOGS
-      -------------------------------------------------------- */
 
       console.log(
-        "=== GEMINI STRUCTURED ARTWORK ===",
+        "=== GEMINI 3.6 ARTWORK ===",
       );
 
       console.log(
@@ -854,7 +1214,7 @@ while preserving its described colors and visual identity.
       );
 
       console.log(
-        "=== FINAL STABILITY PROMPT ===",
+        "=== NANO BANANA 2 PROMPT ===",
       );
 
       console.log(
@@ -862,94 +1222,62 @@ while preserving its described colors and visual identity.
       );
 
       /* --------------------------------------------------------
-         STABILITY KEYS
+         STEP 5: NANO BANANA 2
       -------------------------------------------------------- */
 
-      const keysEnv =
-        process.env.STABILITY_API_KEYS ||
-        process.env.STABILITY_API_KEY ||
-        "";
+      let generatedImage;
 
-      const stabilityKeys =
-        keysEnv
-          .split(",")
-          .map(
-            (key) =>
-              key.trim(),
-          )
-          .filter(Boolean);
-
-      if (
-        stabilityKeys.length === 0
+      try {
+        generatedImage =
+          await generateGeminiImage(
+            geminiApiKey,
+            finalPrompt,
+          );
+      } catch (
+        imageError: any
       ) {
+        console.error(
+          "NANO BANANA 2 ERROR:",
+          imageError,
+        );
+
         throw createError({
-          statusCode: 500,
+          statusCode: 502,
           message:
-            "Stability AI kalitlari topilmadi.",
+            `Nano Banana 2 xatosi: ${
+              imageError?.message ||
+              "Rasm yaratilmadi"
+            }`,
         });
       }
 
       /* --------------------------------------------------------
-         STABILITY GENERATION
+         STEP 6: SUPABASE STORAGE
       -------------------------------------------------------- */
 
-      let generatedImageUrl = "";
+      let generatedImageUrl: string;
 
-      const stabilityErrors: string[] =
-        [];
-
-      for (
-        let i = 0;
-        i <
-        stabilityKeys.length;
-        i++
+      try {
+        generatedImageUrl =
+          await uploadGeneratedImage(
+            supabase,
+            generatedImage.base64,
+            generatedImage.mimeType,
+          );
+      } catch (
+        uploadError: any
       ) {
-        try {
-          console.log(
-            `Stability AI: ${i + 1
-            }/${stabilityKeys.length}`,
-          );
+        console.error(
+          "IMAGE STORAGE ERROR:",
+          uploadError,
+        );
 
-          generatedImageUrl =
-            await generateAndUpload(
-              finalPrompt,
-              negativePrompt,
-              stabilityKeys[i],
-              supabase,
-            );
-
-          console.log(
-            `Stability AI muvaffaqiyatli: key ${i + 1
-            }`,
-          );
-
-          break;
-        } catch (error: any) {
-          const message =
-            error?.message ||
-            "Noma'lum Stability xatosi";
-
-          stabilityErrors.push(
-            `Key ${i + 1
-            }: ${message}`,
-          );
-
-          console.error(
-            "STABILITY AI XATOLIGI:",
-            message,
-          );
-        }
-      }
-
-      if (
-        !generatedImageUrl
-      ) {
         throw createError({
-          statusCode: 500,
+          statusCode: 502,
           message:
-            `Stability AI ishlamadi. ${stabilityErrors.join(
-              " | ",
-            )
+            `Rasmni saqlashda xatolik: ${
+              uploadError?.message ||
+              "Supabase Storage xatosi"
             }`,
         });
       }
@@ -964,12 +1292,19 @@ while preserving its described colors and visual identity.
         frontImage:
           generatedImageUrl,
 
+        imageUrl:
+          generatedImageUrl,
+
         product: {
           productType:
             englishProductName,
+
           productName,
+
           fabric,
+
           color,
+
           style,
         },
 
@@ -981,11 +1316,12 @@ while preserving its described colors and visual identity.
         prompt:
           finalPrompt,
 
-        negativePrompt,
-
         metadata: {
           aspectRatio:
             "16:9",
+
+          imageSize:
+            "2K",
 
           hasReferenceImage:
             Boolean(
@@ -993,11 +1329,17 @@ while preserving its described colors and visual identity.
             ),
 
           provider:
-            "stability-ai",
+            "google-gemini",
 
-          textAnalyzer:
+          analyzer:
             "gemini-3.6-flash",
+
+          imageModel:
+            "gemini-3.1-flash-image",
         },
+
+        mimeType:
+          generatedImage.mimeType,
       };
     } catch (error: any) {
       console.error(
