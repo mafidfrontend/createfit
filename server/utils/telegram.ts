@@ -46,26 +46,88 @@ export function validateInitData(initData: string, botToken: string): TelegramUs
 }
 
 // --- YANNGI QO'SHILGAN QISM: Buyurtmani guruhga yuborish ---
-export async function sendOrderToTelegramGroup(orderData: any, customerData: { name: string, phone: string, address: string }) {
+// --- TELEGRAM: Buyurtmani guruhga yuborish ---
+export async function sendOrderToTelegramGroup(
+  orderData: any,
+  customerData: {
+    name: string
+    phone: string
+    address: string
+  }
+) {
   const config = useRuntimeConfig()
-  const botToken = process.env.TELEGRAM_BOT_TOKEN || config.telegramBotToken
-  const chatId = process.env.TELEGRAM_CHAT_ID || config.telegramChatId
+
+  const botToken =
+    process.env.TELEGRAM_BOT_TOKEN ||
+    config.telegramBotToken
+
+  const chatId =
+    process.env.TELEGRAM_CHAT_ID ||
+    config.telegramChatId
 
   if (!botToken || !chatId) {
-    console.error('Telegram Bot Token yoki Chat ID sozlanmagan')
+    console.error(
+      'Telegram Bot Token yoki Chat ID sozlanmagan'
+    )
     return
   }
 
-  const orderNumber = orderData.order_number || 'Новый'
-  const product = orderData.product?.name || 'Одежда'
-  const fabric = orderData.fabric?.name || 'Стандарт'
-  const size = orderData.size?.standardSize || orderData.size || 'Индивидуальный'
-  const price = orderData.total_price ? `${orderData.total_price} $` : 'Договорная'
-  
+  const orderNumber =
+    orderData.order_number ||
+    orderData.orderNumber ||
+    'Новый'
+
+  const product =
+    orderData.product?.name ||
+    'Одежда'
+
+  const fabric =
+    orderData.fabric?.name ||
+    'Стандарт'
+
+  const size =
+    orderData.size?.standardSize ||
+    orderData.size ||
+    'Индивидуальный'
+
+  const price =
+    orderData.total_price != null
+      ? `${orderData.total_price} $`
+      : orderData.totalPrice != null
+        ? `${orderData.totalPrice} $`
+        : 'Договорная'
+
+  // ---------------------------------------------------------
+  // DESIGN INFO
+  // ---------------------------------------------------------
+
   let designInfo = 'Стандарт'
-  if (orderData.design?.type === 'existing') designInfo = `Готовый дизайн: ${orderData.design.existingDesignName}`
-  else if (orderData.design?.type === 'ai') designInfo = `AI: ${orderData.design.aiPrompt}`
-  else if (orderData.design?.type === 'uploaded') designInfo = 'Фото от клиента'
+
+  if (
+    orderData.design?.type === 'existing'
+  ) {
+    designInfo =
+      `Готовый дизайн: ${orderData.design.existingDesignName ||
+      'Без названия'
+      }`
+  } else if (
+    orderData.design?.type === 'ai'
+  ) {
+    designInfo =
+      `AI: ${orderData.design.aiPrompt ||
+      orderData.design.prompt ||
+      'Сгенерированный дизайн'
+      }`
+  } else if (
+    orderData.design?.type === 'uploaded'
+  ) {
+    designInfo =
+      'Фото от клиента'
+  }
+
+  // ---------------------------------------------------------
+  // ORDER MESSAGE
+  // ---------------------------------------------------------
 
   const messageText = `
 🛍 <b>НОВЫЙ ЗАКАЗ #${orderNumber}</b>
@@ -83,28 +145,73 @@ export async function sendOrderToTelegramGroup(orderData: any, customerData: { n
 `
 
   try {
-    await $fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-      method: 'POST',
-      body: {
-        chat_id: chatId,
-        text: messageText,
-        parse_mode: 'HTML'
-      }
-    })
+    // -------------------------------------------------------
+    // 1. ORDER TEXT
+    // -------------------------------------------------------
 
-    const imageUrl = orderData.design?.aiFrontImage || orderData.design?.uploadedImageUrl
-    if (imageUrl) {
-      await $fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
+    await $fetch(
+      `https://api.telegram.org/bot${botToken}/sendMessage`,
+      {
         method: 'POST',
         body: {
           chat_id: chatId,
-          photo: imageUrl,
-          caption: `🖼 <b>Дизайн для заказа #${orderNumber}</b>`,
+          text: messageText,
           parse_mode: 'HTML'
         }
-      })
+      }
+    )
+
+    // -------------------------------------------------------
+    // 2. GENERATED / UPLOADED IMAGE
+    // -------------------------------------------------------
+
+    const imageUrl =
+      orderData.design?.aiFrontImage ||
+      orderData.design?.imageUrl ||
+      orderData.design?.frontImage ||
+      orderData.design?.generatedImageUrl ||
+      orderData.design?.uploadedImageUrl ||
+      orderData.aiFrontImage ||
+      orderData.imageUrl ||
+      orderData.frontImage
+
+    console.log(
+      'Telegram order image URL:',
+      imageUrl || 'none'
+    )
+
+    if (imageUrl) {
+      await $fetch(
+        `https://api.telegram.org/bot${botToken}/sendPhoto`,
+        {
+          method: 'POST',
+
+          body: {
+            chat_id: chatId,
+
+            photo: imageUrl,
+
+            caption:
+              `🖼 <b>Дизайн для заказа #${orderNumber}</b>`,
+
+            parse_mode: 'HTML'
+          }
+        }
+      )
+
+      console.log(
+        'Order design image sent to Telegram'
+      )
+    } else {
+      console.log(
+        'Order does not contain a design image'
+      )
     }
+
   } catch (error) {
-    console.error('Telegramga xabar yuborishda xato yuz berdi:', error)
+    console.error(
+      'Telegramga xabar yuborishda xato yuz berdi:',
+      error
+    )
   }
 }
