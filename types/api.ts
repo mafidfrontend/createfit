@@ -6,7 +6,7 @@ export interface ApiOrder {
   order_number: string
   product: { name: string } | null
   fabric: { name: string } | null
-  design: { 
+  design: {
     type: string
     existingDesignName: string | null
     uploadedImageUrl: string | null
@@ -39,6 +39,8 @@ export interface ApiCreateOrderRequest {
     phone: string
     comment?: string
   }
+  aiFrontImage?: string | null;
+  uploadedImageUrl?: string | null;
 }
 
 export interface ApiCreateOrderResponse {

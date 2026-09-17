@@ -111,10 +111,19 @@ async function submit(): Promise<void> {
         name: draft.customer.firstName || draft.customer.username || "Клиент",
         phone: draft.customer.phone || "",
       },
+
       productId: serverProductId,
       fabricId: serverFabricId,
       designId: serverDesignId,
+
+      // AI-generated design image
+      aiFrontImage: draft.design?.aiFrontImage || null,
+
+      // Client-uploaded design image
+      uploadedImageUrl: draft.design?.uploadedImageUrl || null,
+
       size: serverSize as string,
+
       delivery: {
         city: city.value,
         address: address.value,

@@ -7,6 +7,8 @@ interface OrderRequestBody {
   productId: string
   fabricId: string
   designId: string
+  aiFrontImage?: string | null
+  uploadedImageUrl?: string | null
   size: string
   delivery: { city: string; address: string; phone: string; comment: string }
 }
@@ -54,7 +56,23 @@ export default defineEventHandler(async (event) => {
     size: body.size,
     product: { name: body.productId },
     fabric: { name: body.fabricId },
-    design: { type: 'existing', existingDesignName: body.designId }
+
+    design: {
+      type: body.aiFrontImage
+        ? 'ai'
+        : body.uploadedImageUrl
+          ? 'uploaded'
+          : 'existing',
+
+      existingDesignName:
+        body.designId,
+
+      aiFrontImage:
+        body.aiFrontImage || null,
+
+      uploadedImageUrl:
+        body.uploadedImageUrl || null,
+    }
   }
 
   // Guruhga jo'natamiz (try-catch ichiga olamiz, toki xato chiqsa ham buyurtma bekor bo'lmasin)
