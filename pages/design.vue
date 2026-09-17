@@ -156,12 +156,75 @@
 
         <!-- Prompt -->
         <div>
-          <label class="text-sm font-bold">Описание дизайна</label>
-          <textarea
-            v-model="aiPrompt"
-            class="mt-2 min-h-20 w-full resize-none rounded-2xl border border-line bg-cream px-4 py-3 text-sm outline-none focus:border-sage"
-            placeholder="Опиши, какой дизайн хочешь увидеть на изделии — например, минималистичный логотип с горами на груди"
-          ></textarea>
+          <label class="text-sm font-bold"> Описание дизайна </label>
+
+          <div class="relative mt-2">
+            <textarea
+              v-model="aiPrompt"
+              class="min-h-20 w-full resize-none rounded-2xl border border-line bg-cream px-4 py-3 pr-14 text-sm outline-none focus:border-sage"
+              placeholder="Опиши, какой дизайн хочешь увидеть на изделии — например, минималистичный логотип с горами на груди"
+            ></textarea>
+
+            <button
+              type="button"
+              :disabled="isTranscribing"
+              class="absolute bottom-3 right-3 flex h-10 w-10 items-center justify-center rounded-xl border transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+              :class="
+                isRecording
+                  ? 'border-terracotta bg-terracotta/10 text-terracotta'
+                  : 'border-line bg-white text-ink/60 hover:border-sage hover:text-sage'
+              "
+              @click="toggleVoiceRecording"
+            >
+              <span v-if="isTranscribing" class="text-sm font-bold">…</span>
+
+              <svg
+                v-else-if="isRecording"
+                class="h-5 w-5"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
+                <rect x="6" y="6" width="12" height="12" rx="2" />
+              </svg>
+
+              <svg
+                v-else
+                class="h-5 w-5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <rect x="9" y="2" width="6" height="13" rx="3" />
+                <path d="M5 10a7 7 0 0 0 14 0" />
+                <path d="M12 19v3" />
+                <path d="M8 22h8" />
+              </svg>
+            </button>
+          </div>
+
+          <div
+            v-if="isRecording"
+            class="mt-2 rounded-xl border border-terracotta/20 bg-terracotta/5 px-3 py-2 text-xs font-medium text-terracotta"
+          >
+            Говорите... Нажмите на кнопку ещё раз, чтобы закончить.
+          </div>
+
+          <div
+            v-else-if="isTranscribing"
+            class="mt-2 rounded-xl border border-line bg-white px-3 py-2 text-xs font-medium text-sage"
+          >
+            Распознаём речь...
+          </div>
+
+          <p
+            v-if="speechError"
+            class="mt-2 text-xs font-medium text-terracotta"
+          >
+            {{ speechError }}
+          </p>
         </div>
 
         <!-- Generate button -->
@@ -230,17 +293,12 @@
     </div>
 
     <p v-if="error" class="mt-3 text-sm text-terracotta">{{ error }}</p>
-    <BackNext
-      back-to="/preview"
-      :disabled="false"
-      @next="goNext"
-    />
+    <BackNext back-to="/preview" :disabled="false" @next="goNext" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { FABRICS } from "~/config/catalog";
-import { DESIGN_STYLES, SHIRT_COLORS } from "~/types/design";
 import type { Design } from "~/types/order";
 import type {
   DesignStyle,
@@ -255,6 +313,19 @@ const activeTab = ref<"existing" | "upload" | "ai">("existing");
 const selectedExisting = computed(
   () => order.draft.design?.existingDesignId ?? "",
 );
+
+function toggleVoiceRecording(): void {
+  if (isTranscribing.value) {
+    return;
+  }
+
+  if (isRecording.value) {
+    stopRecording();
+  } else {
+    aiPrompt.value = "";
+    startRecording();
+  }
+}
 
 // Yangi State: Tahrirlash rejimini boshqarish uchun
 const isEditingAi = ref(!order.draft.design?.aiFrontImage);
@@ -328,6 +399,22 @@ const aiColor = ref<ShirtColor>(
   (order.draft.design?.aiColor as ShirtColor) || "black",
 );
 const aiPrompt = ref(order.draft.design?.aiPrompt ?? "");
+const {
+  isRecording,
+  isTranscribing,
+  transcript,
+  error: speechError,
+  startRecording,
+  stopRecording,
+} = useSpeechToText();
+
+watch(transcript, (text) => {
+  const cleaned = text.trim();
+
+  if (!cleaned) return;
+
+  aiPrompt.value = cleaned;
+});
 const generating = ref(false);
 const genError = ref("");
 const generatedFront = ref(order.draft.design?.aiFrontImage ?? null);
@@ -338,9 +425,9 @@ const designTabs = [
   { id: "ai" as const, label: "AI дизайн" },
 ];
 
-const canGenerate = computed(
-  () => aiPrompt.value.trim().length > 0 && order.draft.product !== null,
-);
+const canGenerate = computed(() => {
+  return aiPrompt.value.trim().length > 0;
+});
 
 function selectExisting(design: { id: string; name: string }): void {
   logoPreview.value = "";
