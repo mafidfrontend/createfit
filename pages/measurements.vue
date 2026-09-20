@@ -112,8 +112,6 @@
       </div>
     </div>
 
-    <p class="mt-6 text-sm font-bold text-sage">Срок изготовления: 7 дней</p>
-    <PriceSummary :product-price="order.draft.product?.basePrice ?? 0" :fabric-price="order.draft.fabric?.additionalPrice ?? 0" :delivery-price="order.draft.deliveryPrice" :total="order.draft.totalPrice" />
     <p v-if="error" class="mt-3 text-sm text-terracotta">{{ error }}</p>
     <BackNext back-to="/design" :disabled="!order.hasSize" @next="goNext" />
   </div>

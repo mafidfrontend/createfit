@@ -21,6 +21,8 @@ export interface CreateOrderInput {
   productId: string
   fabricId: string
   designId: string
+  designType?: string
+  designName?: string | null
   size: string
   delivery: {
     city: string
@@ -127,7 +129,11 @@ export function parseTelegramUser(initData: string): {
 export async function createOrder(input: CreateOrderInput): Promise<CreateOrderResult> {
   const product = getServerProduct(input.productId)
   const fabric = getServerFabric(input.fabricId)
-  const design = getServerDesign(input.designId)
+  const design = input.designType === 'existing'
+    ? getServerDesign(input.designId)
+    : input.designType === 'ai' || input.designType === 'uploaded'
+      ? { id: input.designId || input.designType, name: input.designName || (input.designType === 'ai' ? 'AI-дизайн' : 'Загруженный дизайн'), price: 0 }
+      : undefined
 
   if (!product) {
     return { success: false, error: `Invalid product: ${input.productId}` }

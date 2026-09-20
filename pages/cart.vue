@@ -29,13 +29,8 @@
         />
       </label>
     </div>
-    <div class="mt-7">
+    <div v-if="city.trim() && address.trim()" class="mt-7">
       <OrderRecap />
-      <div
-        class="mt-3 flex justify-between rounded-2xl border border-line bg-white px-4 py-4 text-sm"
-      >
-        <span>Доставка</span><b>{{ formatUsd(order.draft.deliveryPrice) }}</b>
-      </div>
       <p class="mt-5 text-sm font-bold text-sage">Срок изготовления: 7 дней</p>
     </div>
     <p v-if="error" class="mt-3 text-sm text-terracotta">{{ error }}</p>
@@ -49,7 +44,6 @@
   </div>
 </template>
 <script setup lang="ts">
-import { formatUsd } from "~/utils/pricing";
 import type { CreatedOrder } from "~/types/order";
 
 useSeoMeta({ robots: "noindex, nofollow" });
@@ -92,13 +86,9 @@ async function submit(): Promise<void> {
 
   try {
     // Backend kutayotgan ID'larga moslashtirish (mapping)
-    const serverProductId =
-      draft.product?.id === "tee" ? "tshirt" : draft.product?.id || "tshirt";
-    const serverFabricId =
-      draft.fabric?.id === "premium-cotton"
-        ? "cotton"
-        : draft.fabric?.id || "cotton";
-    const serverDesignId = draft.design?.id || "street-floral"; // Bo'sh qolsa default dizayn
+    const serverProductId = draft.product?.id || "";
+    const serverFabricId = draft.fabric?.id || "";
+    const serverDesignId = draft.design?.existingDesignId || "";
     const serverSize = ["XS", "S", "M", "L", "XL", "XXL"].includes(
       draft.size as string,
     )
@@ -115,6 +105,8 @@ async function submit(): Promise<void> {
       productId: serverProductId,
       fabricId: serverFabricId,
       designId: serverDesignId,
+      designType: draft.design?.type || "",
+      designName: draft.design?.existingDesignName || null,
 
       // AI-generated design image
       aiFrontImage: draft.design?.aiFrontImage || null,

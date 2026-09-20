@@ -17,17 +17,16 @@ export interface ServerDesign {
 }
 
 export const SERVER_PRODUCTS: ServerProduct[] = [
-  { id: 'tshirt', name: 'Футболка', price: 25 },
-  { id: 'womens-tshirt', name: 'Женская футболка', price: 28 },
-  { id: 'kids-tshirt', name: 'Детская футболка', price: 25 },
-  { id: 'tshirt-shorts-set', name: 'Комплект — футболка + шорты', price: 45 },
+  { id: 'tee', name: 'Футболка', price: 25 },
+  { id: 'women-tee', name: 'Женская футболка', price: 25 },
+  { id: 'kids-tee', name: 'Детская футболка', price: 25 },
+  { id: 'set', name: 'Комплект — футболка и шорты', price: 35 },
   { id: 'tracksuit', name: 'Спортивный костюм', price: 50 },
 ]
 
 export const SERVER_FABRICS: ServerFabric[] = [
-  { id: 'cotton', name: 'Хлопок', price: 0 },
-  { id: 'polyester', name: 'Полиэстер', price: 5 },
-  { id: 'linen', name: 'Лён', price: 8 },
+  { id: 'cotton', name: 'Хлопок', price: 25 },
+  { id: 'sport', name: 'Спортивная ткань', price: 30 },
 ]
 
 export const SERVER_DESIGNS: ServerDesign[] = [

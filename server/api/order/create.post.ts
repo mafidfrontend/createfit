@@ -7,6 +7,8 @@ interface OrderRequestBody {
   productId: string
   fabricId: string
   designId: string
+  designType?: string
+  designName?: string | null
   aiFrontImage?: string | null
   uploadedImageUrl?: string | null
   size: string
@@ -37,6 +39,8 @@ export default defineEventHandler(async (event) => {
     productId: body.productId,
     fabricId: body.fabricId,
     designId: body.designId,
+    designType: body.designType,
+    designName: body.designName,
     size: body.size,
     delivery: body.delivery,
   }
