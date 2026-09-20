@@ -14,7 +14,7 @@
         <NuxtLink
           to="/create"
           class="mt-8 block w-[174px] rounded-xl bg-sage px-4 py-3.5 text-center text-sm font-bold text-white transition hover:bg-[#0a4ad4]"
-          >Создать дизайн</NuxtLink
+          >Создать изделие</NuxtLink
         >
         <div class="mt-3 flex w-full gap-2 pr-4">
           <NuxtLink
