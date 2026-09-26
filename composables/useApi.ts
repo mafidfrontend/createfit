@@ -4,6 +4,9 @@ import type {
   ApiPackage,
   ApiCreateOrderRequest,
   ApiCreateOrderResponse,
+  CatalogFabricsResponse,
+  CatalogProductsResponse,
+  CatalogSettingsResponse,
 } from "~/types/api";
 
 function getBaseUrl(): string {
@@ -113,6 +116,18 @@ export function useApi() {
 
     getPackage(id: number): Promise<ApiPackage> {
       return request<ApiPackage>(`/api/packages/${id}`);
+    },
+
+    getCatalogProducts(): Promise<CatalogProductsResponse> {
+      return request<CatalogProductsResponse>("/api/catalog/products");
+    },
+
+    getCatalogFabrics(): Promise<CatalogFabricsResponse> {
+      return request<CatalogFabricsResponse>("/api/catalog/fabrics");
+    },
+
+    getCatalogSettings(): Promise<CatalogSettingsResponse> {
+      return request<CatalogSettingsResponse>("/api/catalog/settings");
     },
 
     createOrder(

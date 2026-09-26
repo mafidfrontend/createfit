@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from 'node:crypto'
 
 const AUTH_EXPIRY_SECONDS = 86400
+const MAX_CLOCK_SKEW_SECONDS = 60
 
 export interface TelegramUser {
   id: number
@@ -13,15 +14,17 @@ export interface TelegramUser {
 
 export function validateInitData(initData: string, botToken: string): TelegramUser | null {
   try {
+    if (!initData || !botToken) return null
     const params = new URLSearchParams(initData)
     const hash = params.get('hash')
-    if (!hash) return null
+    if (!hash || !/^[a-f0-9]{64}$/i.test(hash)) return null
     params.delete('hash')
 
     const authDateRaw = params.get('auth_date')
     const authDate = authDateRaw ? parseInt(authDateRaw, 10) : NaN
     if (!Number.isFinite(authDate)) return null
-    if (Math.floor(Date.now() / 1000) - authDate > AUTH_EXPIRY_SECONDS) return null
+    const now = Math.floor(Date.now() / 1000)
+    if (authDate > now + MAX_CLOCK_SKEW_SECONDS || now - authDate > AUTH_EXPIRY_SECONDS) return null
 
     const pairs: string[] = []
     for (const key of Array.from(params.keys()).sort()) {
@@ -33,7 +36,7 @@ export function validateInitData(initData: string, botToken: string): TelegramUs
 
     const secretKey = createHmac('sha256', 'WebAppData').update(botToken).digest()
     const computedHash = createHmac('sha256', secretKey).update(dataCheckString).digest('hex')
-    if (computedHash.length !== hash.length || !timingSafeEqual(Buffer.from(computedHash), Buffer.from(hash))) return null
+    if (computedHash.length !== hash.length || !timingSafeEqual(Buffer.from(computedHash), Buffer.from(hash.toLowerCase()))) return null
 
     const userJson = params.get('user')
     if (!userJson) return null
@@ -43,6 +46,30 @@ export function validateInitData(initData: string, botToken: string): TelegramUs
   } catch {
     return null
   }
+}
+
+export function getTelegramInitData(event: H3Event, bodyInitData = ''): string {
+  const authorization = getHeader(event, 'authorization')
+  if (authorization?.toLowerCase().startsWith('tma ')) {
+    const initData = authorization.slice(4).trim()
+    if (initData) return initData
+  }
+
+  const headerInitData = getHeader(event, 'x-telegram-init-data')?.trim()
+  return headerInitData || bodyInitData.trim()
+}
+
+export function requireTelegramUser(event: H3Event, bodyInitData = ''): TelegramUser {
+  const config = useRuntimeConfig(event)
+  const botToken = config.telegramBotToken || process.env.TELEGRAM_BOT_TOKEN || process.env.NUXT_TELEGRAM_BOT_TOKEN
+  const initData = getTelegramInitData(event, bodyInitData)
+  const user = validateInitData(initData, botToken)
+
+  if (!user) {
+    throw createError({ statusCode: 401, statusMessage: 'Telegram authentication required' })
+  }
+
+  return user
 }
 
 // --- YANNGI QO'SHILGAN QISM: Buyurtmani guruhga yuborish ---

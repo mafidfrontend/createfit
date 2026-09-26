@@ -1,5 +1,12 @@
 export type OrderStatus = 'awaiting_payment' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled'
 export type PaymentStatus = 'pending' | 'awaiting_payment' | 'paid' | 'failed' | 'cancelled'
+import type {
+  CatalogFabricsResponse,
+  CatalogProductsResponse,
+  CatalogSettingsResponse,
+} from '~/types/catalog'
+
+export type { CatalogFabricsResponse, CatalogProductsResponse, CatalogSettingsResponse }
 
 export interface ApiOrder {
   id: string

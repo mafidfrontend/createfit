@@ -9,13 +9,16 @@
 
     <!-- Fabric selection -->
     <h2 class="mb-3 text-lg font-bold">Ткань</h2>
-    <div class="space-y-3">
+    <p v-if="catalog.loading" class="rounded-2xl border border-line bg-white p-4 text-sm text-ink/60">Загружаем каталог тканей...</p>
+    <p v-else-if="catalog.error" class="rounded-2xl border border-terracotta/30 bg-terracotta/5 p-4 text-sm text-terracotta">{{ catalog.error }}</p>
+    <div v-else class="space-y-3">
       <OptionCard
         v-for="fabric in availableFabrics"
         :key="fabric.id"
         :title="fabric.name"
         :description="fabric.description"
         :price="fabric.additionalPrice"
+        :currency="catalog.currency"
         :selected="order.draft.fabric?.id === fabric.id"
         @select="order.setFabric(fabric)"
       />
@@ -298,7 +301,6 @@
 </template>
 
 <script setup lang="ts">
-import { FABRICS } from "~/config/catalog";
 import type { Design } from "~/types/order";
 import type {
   DesignStyle,
@@ -308,7 +310,10 @@ import type {
 
 useSeoMeta({ robots: "noindex, nofollow" });
 const order = useOrderStore();
+const catalog = useCatalog();
 const error = ref("");
+
+onMounted(() => catalog.loadCatalog());
 const activeTab = ref<"existing" | "upload" | "ai">("existing");
 const selectedExisting = computed(
   () => order.draft.design?.existingDesignId ?? "",
@@ -375,12 +380,12 @@ const availableFabrics = computed(() => {
     order.draft.product?.id.toLowerCase().includes("tshirt");
 
   if (isTshirt) {
-    return FABRICS.filter(
+    return catalog.fabrics.filter(
       (f) => !f.name.toLowerCase().includes("премиум хлопок"),
     );
   }
 
-  return FABRICS;
+  return catalog.fabrics;
 });
 
 // Upload state

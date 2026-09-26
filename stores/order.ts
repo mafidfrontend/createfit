@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
-import { DELIVERY_PRICE, MANUFACTURING_DAYS } from "~/config/catalog";
 import { calculateSubtotal, calculateTotal } from "~/utils/pricing";
+import type { CatalogSettings } from "~/types/catalog";
 import type {
   CreatedOrder,
   Customer,
@@ -25,7 +25,7 @@ const emptyDelivery: Delivery = {
   city: "",
   address: "",
   comment: "",
-  price: DELIVERY_PRICE,
+  price: 0,
 };
 
 const STORAGE_KEY = "fabrika_order";
@@ -106,9 +106,9 @@ export const useOrderStore = defineStore("createfit-order", {
       paymentStatus: "pending",
       delivery: { ...emptyDelivery },
       subtotal: 0,
-      deliveryPrice: DELIVERY_PRICE,
-      totalPrice: DELIVERY_PRICE,
-      manufacturingDays: MANUFACTURING_DAYS,
+      deliveryPrice: 0,
+      totalPrice: 0,
+      manufacturingDays: 0,
     };
     const persisted = loadPersistedDraft();
     if (persisted) {
@@ -117,7 +117,7 @@ export const useOrderStore = defineStore("createfit-order", {
       if (persisted.design) base.design = persisted.design;
       if (persisted.size) base.size = persisted.size;
       if (persisted.delivery)
-        base.delivery = { ...base.delivery, ...persisted.delivery };
+        base.delivery = { ...base.delivery, ...persisted.delivery, price: 0 };
       if (persisted.paymentMethod) base.paymentMethod = persisted.paymentMethod;
       base.subtotal = calculateSubtotal(
         base.product,
@@ -157,8 +157,18 @@ export const useOrderStore = defineStore("createfit-order", {
       this.recalculate();
       this.persist();
     },
+    clearProduct(): void {
+      this.draft.product = null;
+      this.recalculate();
+      this.persist();
+    },
     setFabric(fabric: Fabric): void {
       this.draft.fabric = fabric;
+      this.recalculate();
+      this.persist();
+    },
+    clearFabric(): void {
+      this.draft.fabric = null;
       this.recalculate();
       this.persist();
     },
@@ -177,6 +187,13 @@ export const useOrderStore = defineStore("createfit-order", {
     },
     setDelivery(delivery: Partial<Delivery>): void {
       this.draft.delivery = { ...this.draft.delivery, ...delivery };
+      this.recalculate();
+      this.persist();
+    },
+    setStoreSettings(settings: CatalogSettings): void {
+      this.draft.delivery.price = settings.delivery_price;
+      this.draft.deliveryPrice = settings.delivery_price;
+      this.draft.manufacturingDays = settings.manufacturing_days;
       this.recalculate();
       this.persist();
     },

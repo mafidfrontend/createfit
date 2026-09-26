@@ -3,8 +3,8 @@ export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'cancelled'
 export type DesignType = 'existing' | 'uploaded' | 'ai'
 export type SizeType = 'standard' | 'custom'
 
-export interface Product { id: string; name: string; basePrice: number; description: string }
-export interface Fabric { id: string; name: string; additionalPrice: number; description: string }
+export interface Product { id: string; slug?: string; catalogId?: string; name: string; basePrice: number; description: string }
+export interface Fabric { id: string; slug?: string; catalogId?: string; name: string; additionalPrice: number; description: string }
 export interface Design {
   type: DesignType
   existingDesignId: string | null

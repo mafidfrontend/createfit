@@ -29,9 +29,15 @@
         />
       </label>
     </div>
-    <div v-if="city.trim() && address.trim()" class="mt-7">
+    <div v-if="catalog.loading" class="mt-7 rounded-2xl border border-line bg-white p-4 text-sm text-ink/60">
+      Загружаем настройки заказа...
+    </div>
+    <div v-else-if="catalog.error" class="mt-7 rounded-2xl border border-terracotta/30 bg-terracotta/5 p-4 text-sm text-terracotta">
+      {{ catalog.error }}
+    </div>
+    <div v-else-if="city.trim() && address.trim()" class="mt-7">
       <OrderRecap />
-      <p class="mt-5 text-sm font-bold text-sage">Срок изготовления: 7 дней</p>
+      <p class="mt-5 text-sm font-bold text-sage">Срок изготовления: {{ order.draft.manufacturingDays }} дней</p>
     </div>
     <p v-if="error" class="mt-3 text-sm text-terracotta">{{ error }}</p>
     <BackNext
@@ -49,6 +55,7 @@ import type { CreatedOrder } from "~/types/order";
 useSeoMeta({ robots: "noindex, nofollow" });
 const order = useOrderStore();
 const api = useApi();
+const catalog = useCatalog();
 // getInitData funksiyasini ham chaqirib olamiz
 const { authenticate, error: authError, getInitData } = useTelegram();
 const city = ref(order.draft.delivery.city);
@@ -56,6 +63,8 @@ const address = ref(order.draft.delivery.address);
 const comment = ref(order.draft.delivery.comment);
 const error = ref("");
 const submitting = ref(false);
+
+onMounted(() => catalog.loadCatalog());
 
 watch([city, address, comment], () =>
   order.setDelivery({
@@ -66,7 +75,7 @@ watch([city, address, comment], () =>
 );
 
 async function submit(): Promise<void> {
-  if (submitting.value) return;
+  if (submitting.value || catalog.loading || catalog.error) return;
   if (!city.value.trim() || !address.value.trim()) {
     error.value = "Введите город и адрес доставки";
     return;

@@ -1,5 +1,7 @@
 import { createOrder, type CreateOrderInput } from '../../services/orders'
+import { isValidIdempotencyKey } from '../../services/idempotency'
 import { sendOrderToTelegramGroup } from '~/server/utils/telegram'
+import { requireTelegramUser } from '~/server/utils/telegram'
 
 interface OrderRequestBody {
   telegramInitData: string
@@ -28,28 +30,45 @@ export default defineEventHandler(async (event) => {
     return { success: false, error: 'Request body is required' }
   }
 
-  if (!body.telegramInitData) {
+  const idempotencyKey = getHeader(event, 'idempotency-key')?.trim()
+  if (!idempotencyKey || !isValidIdempotencyKey(idempotencyKey)) {
     setResponseStatus(event, 400)
-    return { success: false, error: 'Telegram initData is required' }
+    return { success: false, error: 'A valid Idempotency-Key header is required' }
   }
 
+  const telegramUser = requireTelegramUser(event, body.telegramInitData)
+
   const input: CreateOrderInput = {
-    telegramInitData: body.telegramInitData,
     contact: body.contact,
     productId: body.productId,
     fabricId: body.fabricId,
     designId: body.designId,
     designType: body.designType,
     designName: body.designName,
+    aiFrontImage: body.aiFrontImage,
+    uploadedImageUrl: body.uploadedImageUrl,
     size: body.size,
     delivery: body.delivery,
   }
 
-  const result = await createOrder(input)
+  const result = await createOrder(input, telegramUser, idempotencyKey)
 
   if (!result.success) {
-    setResponseStatus(event, 400)
+    setResponseStatus(event, result.statusCode ?? 400)
     return { success: false, error: result.error }
+  }
+
+  if (!result.created) {
+    setResponseStatus(event, 200)
+    return {
+      success: true,
+      orderId: result.orderId,
+      orderNumber: result.orderNumber,
+      totalPrice: result.totalPrice,
+      paymentStatus: result.paymentStatus,
+      orderStatus: result.orderStatus,
+      createdAt: result.createdAt,
+    }
   }
 
   // --- TELEGRAMGA XABAR YUBORISH QISMI ---

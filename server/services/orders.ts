@@ -1,19 +1,19 @@
 import { createClient } from '@supabase/supabase-js'
 import {
-  getServerProduct,
-  getServerFabric,
-  getServerDesign,
-  calculateServerTotal,
-  SERVER_DELIVERY_PRICE,
-  SERVER_MANUFACTURING_DAYS,
-} from '../config/catalog'
+  getActiveDesignBySlug,
+  getActiveFabricBySlug,
+  getActiveProductBySlug,
+  getStoreSettings,
+} from './catalog'
+import { hashOrderRequest, type OrderRequestFingerprintInput } from './idempotency'
+import { calculateOrderPricing, resolveOrderDesign } from './order-pricing'
 import { sendOrderNotification, type OrderNotificationData } from './telegram'
+import type { TelegramUser } from '../utils/telegram'
 
 export type PaymentStatus = 'pending' | 'awaiting_payment' | 'paid' | 'failed' | 'cancelled'
 export type OrderStatus = 'awaiting_payment' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled'
 
 export interface CreateOrderInput {
-  telegramInitData: string
   contact: {
     name: string
     phone: string
@@ -23,6 +23,8 @@ export interface CreateOrderInput {
   designId: string
   designType?: string
   designName?: string | null
+  aiFrontImage?: string | null
+  uploadedImageUrl?: string | null
   size: string
   delivery: {
     city: string
@@ -40,6 +42,8 @@ export interface CreateOrderResult {
   paymentStatus?: PaymentStatus
   orderStatus?: OrderStatus
   createdAt?: string
+  created?: boolean
+  statusCode?: number
   error?: string
 }
 
@@ -71,6 +75,11 @@ export interface StoredOrder {
   order_status: OrderStatus
   manufacturing_days: number
   created_at: string
+  idempotency_key?: string | null
+  request_hash?: string | null
+  product_catalog_id?: string | null
+  fabric_catalog_id?: string | null
+  design_catalog_id?: string | null
 }
 
 function getSupabaseClient() {
@@ -95,45 +104,65 @@ export function generateOrderNumber(): string {
   return result
 }
 
-export function parseTelegramUser(initData: string): {
-  telegramUserId: string
-  telegramUsername: string | null
-  firstName: string
-  lastName: string | null
-} | null {
-  try {
-    const params = new URLSearchParams(initData)
-    const userJson = params.get('user')
-    if (!userJson) return null
-
-    const user = JSON.parse(userJson) as {
-      id: number
-      username?: string
-      first_name?: string
-      last_name?: string
-    }
-
-    if (!user.id) return null
-
-    return {
-      telegramUserId: String(user.id),
-      telegramUsername: user.username ?? null,
-      firstName: user.first_name ?? '',
-      lastName: user.last_name ?? null,
-    }
-  } catch {
-    return null
+function resultFromStoredOrder(order: StoredOrder, created: boolean): CreateOrderResult {
+  return {
+    success: true,
+    orderId: order.id,
+    orderNumber: order.order_number,
+    totalPrice: Number(order.total_price),
+    paymentStatus: order.payment_status,
+    orderStatus: order.order_status,
+    createdAt: order.created_at,
+    created,
   }
 }
 
-export async function createOrder(input: CreateOrderInput): Promise<CreateOrderResult> {
-  const product = getServerProduct(input.productId)
-  const fabric = getServerFabric(input.fabricId)
-  const design = input.designType === 'existing'
-    ? getServerDesign(input.designId)
-    : input.designType === 'ai' || input.designType === 'uploaded'
-      ? { id: input.designId || input.designType, name: input.designName || (input.designType === 'ai' ? 'AI-дизайн' : 'Загруженный дизайн'), price: 0 }
-      : undefined
+async function getIdempotentOrder(
+  supabase: ReturnType<typeof createClient>,
+  telegramUserId: string,
+  idempotencyKey: string,
+): Promise<{ order: StoredOrder | null; error: string | null }> {
+  const { data, error } = await supabase
+    .from('orders')
+    .select('*')
+    .eq('telegram_user_id', telegramUserId)
+    .eq('idempotency_key', idempotencyKey)
+    .maybeSingle<StoredOrder>()
+
+  return { order: data ?? null, error: error?.message ?? null }
+}
+
+export async function createOrder(
+  input: CreateOrderInput,
+  telegramUser: TelegramUser,
+  idempotencyKey: string,
+): Promise<CreateOrderResult> {
+  const requestHash = hashOrderRequest(input as OrderRequestFingerprintInput)
+  let supabase: ReturnType<typeof createClient>
+  try {
+    supabase = getSupabaseClient()
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error'
+    return { success: false, error: `Database not configured: ${message}`, statusCode: 500 }
+  }
+
+  const verifiedTelegramUserId = String(telegramUser.id)
+  const existing = await getIdempotentOrder(supabase, verifiedTelegramUserId, idempotencyKey)
+  if (existing.error) {
+    console.error(`[orders] Idempotency lookup failed: ${existing.error}`)
+    return { success: false, error: 'Failed to check order idempotency', statusCode: 500 }
+  }
+  if (existing.order) {
+    if (existing.order.request_hash !== requestHash) {
+      return { success: false, error: 'Idempotency-Key was already used for a different request', statusCode: 409 }
+    }
+    return resultFromStoredOrder(existing.order, false)
+  }
+
+  const product = await getActiveProductBySlug(input.productId)
+  const fabric = await getActiveFabricBySlug(input.fabricId)
+  const predefinedDesign = input.designType === 'existing' ? await getActiveDesignBySlug(input.designId) : null
+  const design = resolveOrderDesign(input, predefinedDesign)
 
   if (!product) {
     return { success: false, error: `Invalid product: ${input.productId}` }
@@ -158,16 +187,11 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
     return { success: false, error: 'Delivery city, address, and phone are required' }
   }
 
-  const telegramUser = parseTelegramUser(input.telegramInitData)
-  if (!telegramUser || !telegramUser.telegramUserId) {
-    return { success: false, error: 'Unable to identify Telegram user' }
-  }
-
-  const productPrice = product.price
-  const fabricPrice = fabric.price
-  const designPrice = design.price
-  const deliveryPrice = SERVER_DELIVERY_PRICE
-  const totalPrice = calculateServerTotal(productPrice, fabricPrice, designPrice, deliveryPrice)
+  // Throws on missing/invalid settings; the settings source of truth is the
+  // database, never a hardcoded server or frontend default.
+  const settings = await getStoreSettings()
+  const { productPrice, fabricPrice, designPrice, deliveryPrice, totalPrice } =
+    calculateOrderPricing(product, fabric, design, settings)
 
   const orderNumber = generateOrderNumber()
   const paymentStatus: PaymentStatus = 'awaiting_payment'
@@ -175,17 +199,20 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
 
   const insertPayload = {
     order_number: orderNumber,
-    telegram_user_id: telegramUser.telegramUserId,
-    telegram_username: telegramUser.telegramUsername,
-    first_name: input.contact.name,
-    last_name: null,
+    telegram_user_id: verifiedTelegramUserId,
+    telegram_username: telegramUser.username ?? null,
+    first_name: telegramUser.first_name ?? '',
+    last_name: telegramUser.last_name ?? null,
     phone: input.contact.phone,
-    product_id: product.id,
+    product_id: product.slug,
     product_name: product.name,
-    fabric_id: fabric.id,
+    product_catalog_id: product.id,
+    fabric_id: fabric.slug,
     fabric_name: fabric.name,
-    design_id: design.id,
+    fabric_catalog_id: fabric.id,
+    design_id: design.slug,
     design_name: design.name,
+    design_catalog_id: design.catalogId,
     size: input.size,
     delivery_city: input.delivery.city,
     delivery_address: input.delivery.address,
@@ -198,15 +225,9 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
     total_price: totalPrice,
     payment_status: paymentStatus,
     order_status: orderStatus,
-    manufacturing_days: SERVER_MANUFACTURING_DAYS,
-  }
-
-  let supabase: ReturnType<typeof createClient>
-  try {
-    supabase = getSupabaseClient()
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    return { success: false, error: `Database not configured: ${message}` }
+    manufacturing_days: settings.manufacturing_days,
+    idempotency_key: idempotencyKey,
+    request_hash: requestHash,
   }
 
   const { data, error } = await supabase
@@ -215,10 +236,24 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
     .select()
     .single<StoredOrder>()
 
+  if (error?.code === '23505') {
+    const concurrent = await getIdempotentOrder(supabase, verifiedTelegramUserId, idempotencyKey)
+    if (concurrent.error) {
+      console.error(`[orders] Idempotency recovery lookup failed: ${concurrent.error}`)
+      return { success: false, error: 'Failed to recover idempotent order', statusCode: 500 }
+    }
+    if (concurrent.order) {
+      if (concurrent.order.request_hash !== requestHash) {
+        return { success: false, error: 'Idempotency-Key was already used for a different request', statusCode: 409 }
+      }
+      return resultFromStoredOrder(concurrent.order, false)
+    }
+  }
+
   if (error || !data) {
     const message = error?.message ?? 'Unknown database error'
     console.error(`[orders] Insert failed: ${message}`)
-    return { success: false, error: `Failed to store order: ${message}` }
+    return { success: false, error: `Failed to store order: ${message}`, statusCode: 500 }
   }
 
   const notificationData: OrderNotificationData = {
@@ -244,15 +279,7 @@ export async function createOrder(input: CreateOrderInput): Promise<CreateOrderR
 
   await sendOrderNotification(notificationData)
 
-  return {
-    success: true,
-    orderId: data.id,
-    orderNumber: data.order_number,
-    totalPrice: Number(data.total_price),
-    paymentStatus: data.payment_status,
-    orderStatus: data.order_status,
-    createdAt: data.created_at,
-  }
+  return resultFromStoredOrder(data, true)
 }
 
 export async function getOrderByNumber(orderNumber: string): Promise<StoredOrder | null> {
